@@ -2,45 +2,38 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
-  // Inicializa a resposta base
+  // 1. Cria a resposta padrão
   let supabaseResponse = NextResponse.next({
     request,
   })
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  // Proteção: Se as chaves sumirem por instabilidade, não quebra o servidor
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return supabaseResponse
-  }
-
-  // Cria o cliente Supabase corrigido para o padrão de objetos do Next.js
+  // 2. Inicializa o cliente Supabase de forma totalmente segura para a Vercel
   const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // CORREÇÃO AQUI: Passando o objeto completo (...options) para não quebrar os pedaços do token
-          cookiesToSet.forEach(({ name, value, options }) => 
-            request.cookies.set({ name, value, ...options })
-          )
+          // CORREÇÃO CRÍTICA: No 'request' passamos apenas name e value (sem as options que quebram o Edge)
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          
           supabaseResponse = NextResponse.next({
             request,
           })
+          
+          // No 'response' sim, passamos as opções completas de segurança
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set({ name, value, ...options })
+            supabaseResponse.cookies.set(name, value, options)
           )
         },
       },
     }
   )
 
-  // Bloco de segurança para interceptar qualquer erro de rede ou sessão
+  // 3. Valida a sessão do utilizador
   try {
     const {
       data: { user },
@@ -48,21 +41,22 @@ export async function middleware(request: NextRequest) {
 
     const isLoginPage = request.nextUrl.pathname.startsWith('/login')
 
-    // REGRA 1: Sem utilizador -> vai para o Login
+    // REGRA 1: Se não está logado e não está no login -> Vai para o Login
     if (!user && !isLoginPage) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
     }
 
-    // REGRA 2: Já está logado e tenta ir ao Login -> vai para o Dashboard
+    // REGRA 2: Se já está logado e tenta ir ao login -> Vai para o Dashboard
     if (user && isLoginPage) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
-  } catch (error) {
-    console.error('Erro de autenticação no Middleware:', error)
+  } catch (e) {
+    // Evita que falhas temporárias de rede quebrem o carregamento da página
+    console.error("Erro crítico de validação no middleware:", e)
   }
 
   return supabaseResponse
@@ -70,7 +64,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Vigia todas as rotas da aplicação, exceto arquivos estáticos e imagens
+    // Monitoriza todas as rotas, exceto ficheiros estáticos e imagens comuns
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
