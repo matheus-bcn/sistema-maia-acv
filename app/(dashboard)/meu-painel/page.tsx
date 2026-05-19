@@ -1,0 +1,414 @@
+"use client";
+
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Target, TrendingUp, Award, DollarSign, Loader2, Calendar, Swords, ShieldAlert, Check, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function MeuPainelPage() {
+  const supabase = useMemo(() => createClient(), []);
+  
+  const [loading, setLoading] = useState(true);
+  const [vendedor, setVendedor] = useState<any>(null);
+  const [vendas, setVendas] = useState<any[]>([]);
+  const [metaIndividual, setMetaIndividual] = useState(0);
+
+  // Estados da Batalha X1
+  const [colegas, setColegas] = useState<any[]>([]);
+  const [colegaSelecionado, setColegaSelecionado] = useState("");
+  const [batalha, setBatalha] = useState<any>(null);
+  const [oponente, setOponente] = useState<any>(null);
+  const [oponenteTotal, setOponenteTotal] = useState(0);
+  const [loadingBatalha, setLoadingBatalha] = useState(false);
+
+  // Cálculo Dinâmico de Dias Úteis para a IA Predictor
+  const { diasUteisPassados, diasUteisTotais } = useMemo(() => {
+    const hoje = new Date();
+    const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const endOfMonth = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    let passados = 0;
+    let totais = 0;
+    let curDate = new Date(startOfMonth.getTime());
+    while (curDate <= endOfMonth) {
+      const dayOfWeek = curDate.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        totais++;
+        if (curDate <= hoje) passados++;
+      }
+      curDate.setDate(curDate.getDate() + 1);
+    }
+    return { diasUteisPassados: passados || 1, diasUteisTotais: totais || 22 };
+  }, []);
+
+  const carregarMeuPainel = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+
+      const { data: sellerData } = await supabase
+        .from("sellers")
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+      if (sellerData) {
+        setVendedor(sellerData);
+
+        // ========================================================
+        // BUSCA DA META CORRIGIDA COM BASE NO TEU SUPABASE (target_value)
+        // ========================================================
+        const { data: goalData } = await supabase
+          .from("goals")
+          .select("target_value")
+          .eq("type", "individual") // Filtra apenas a linha de meta individual
+          .order("created_at", { ascending: false }) // Garante o registro mais recente
+          .limit(1)
+          .maybeSingle();
+
+        if (goalData && goalData.target_value) {
+          setMetaIndividual(Number(goalData.target_value));
+        } else {
+          setMetaIndividual(Number(sellerData.meta) || Number(sellerData.goal) || 25000);
+        }
+        // ========================================================
+
+        const hoje = new Date();
+        const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
+        const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+        // Vendas do Vendedor Logado
+        const { data: salesData } = await supabase
+          .from("sales")
+          .select("*")
+          .eq("seller_id", sellerData.id)
+          .gte("sale_date", inicioMes)
+          .lte("sale_date", fimMes);
+
+        setVendas(salesData || []);
+
+        // LÓGICA DA BATALHA X1
+        const { data: battleData } = await supabase
+          .from('x1_battles')
+          .select('*')
+          .or(`challenger_id.eq.${sellerData.id},challenged_id.eq.${sellerData.id}`)
+          .in('status', ['pendente', 'ativo'])
+          .maybeSingle();
+
+        if (battleData) {
+          setBatalha(battleData);
+          const oppId = battleData.challenger_id === sellerData.id ? battleData.challenged_id : battleData.challenger_id;
+          const { data: oppData } = await supabase.from('sellers').select('*').eq('id', oppId).single();
+          setOponente(oppData);
+
+          if (battleData.status === 'ativo' && oppData) {
+            const { data: oppSales } = await supabase
+              .from('sales')
+              .select('amount')
+              .eq('seller_id', oppData.id)
+              .gte('sale_date', inicioMes)
+              .lte('sale_date', fimMes);
+            
+            const totalOpp = oppSales?.reduce((acc, v) => acc + Number(v.amount), 0) || 0;
+            setOponenteTotal(totalOpp);
+          }
+        } else {
+          const { data: colegasData } = await supabase
+            .from('sellers')
+            .select('*')
+            .eq('status', 'Ativo')
+            .eq('is_deleted', false)
+            .eq('is_admin', false)
+            .neq('id', sellerData.id);
+            
+          setColegas(colegasData || []);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao carregar painel:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    carregarMeuPainel();
+  }, [carregarMeuPainel]);
+
+  const enviarDesafio = async () => {
+    if (!colegaSelecionado) return;
+    setLoadingBatalha(true);
+    await supabase.from('x1_battles').insert({
+      challenger_id: vendedor.id,
+      challenged_id: colegaSelecionado,
+      status: 'pendente'
+    });
+    await carregarMeuPainel();
+    setLoadingBatalha(false);
+  };
+
+  const responderDesafio = async (novoStatus: 'ativo' | 'recusado') => {
+    if (!batalha) return;
+    setLoadingBatalha(true);
+    await supabase.from('x1_battles').update({ status: novoStatus }).eq('id', batalha.id);
+    await carregarMeuPainel();
+    setLoadingBatalha(false);
+  };
+
+  const totalVendido = useMemo(() => vendas.reduce((acc, v) => acc + Number(v.amount), 0), [vendas]);
+  const progresso = useMemo(() => metaIndividual > 0 ? Math.min((totalVendido / metaIndividual) * 100, 100) : 0, [totalVendido, metaIndividual]);
+  const faltaParaMeta = useMemo(() => metaIndividual - totalVendido, [metaIndividual, totalVendido]);
+  const ticketMedio = useMemo(() => vendas.length > 0 ? totalVendido / vendas.length : 0, [vendas.length, totalVendido]);
+
+  // CORRIGIDO: Removido o caractere intruso e mapeado o 'diasUteisPassados' corretamente na array de dependências
+  const tendenciaFechamento = useMemo(() => (totalVendido / diasUteisPassados) * diasUteisTotais, [totalVendido, diasUteisPassados, diasUteisTotais]);
+  const estaAbaixoDaMeta = useMemo(() => tendenciaFechamento < metaIndividual, [tendenciaFechamento, metaIndividual]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  if (!vendedor) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-bold text-white">Perfil não encontrado</h2>
+        <p className="text-neutral-400">O seu email de login não está vinculado a nenhum vendedor ativo.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto pb-20">
+      <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          {/* IDENTIDADE PREMIUM PRESERVADA: TOTALMENTE SEM EMOJIS */}
+          <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
+            Olá, {vendedor.name.split(" ")[0]}
+          </h2>
+          <p className="text-emerald-400 font-bold mt-1 uppercase tracking-wider text-sm">
+            Nível: {vendedor.category || vendedor.role || "Vendedor"}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-neutral-400">Vendas do Mês Atual</p>
+          <p className="text-xl font-black text-white">{vendas.length} negócios fechados</p>
+        </div>
+      </header>
+
+      <div className="grid gap-6 md:grid-cols-4 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-emerald-500/10 to-transparent flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 bg-emerald-500/20 rounded-lg text-emerald-400"><DollarSign className="h-5 w-5" /></div>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase">Meu Faturamento</h3>
+          </div>
+          <p className="text-3xl font-black text-emerald-400">R$ {totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 bg-blue-500/10 rounded-lg text-blue-400"><TrendingUp className="h-5 w-5" /></div>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase">Ticket Médio</h3>
+          </div>
+          <p className="text-3xl font-black text-white">R$ {ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 bg-yellow-500/10 rounded-lg text-yellow-400"><Award className="h-5 w-5" /></div>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase">Minha Meta</h3>
+          </div>
+          <p className="text-3xl font-black text-white">R$ {metaIndividual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-white/[0.02] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          <div className="absolute top-3 -right-12 bg-emerald-500 text-black text-[8px] font-black uppercase tracking-widest py-0.5 px-12 rotate-45 transform shadow-md">
+            IA Predictor
+          </div>
+          <div>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Status da Meta</h3>
+            <p className="text-3xl font-black text-white">{progresso.toFixed(1)}%</p>
+            <p className="text-[9px] text-neutral-500 uppercase font-bold tracking-widest">Realizado até hoje</p>
+          </div>
+          <div className="bg-black/40 rounded-xl p-3 border border-white/5 mt-3">
+            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest block mb-0.5">Projeção de Fechamento</span>
+            <p className="text-lg font-black text-white">R$ {tendenciaFechamento.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+            <p className={`text-[10px] font-bold mt-1 flex items-center gap-1 ${estaAbaixoDaMeta ? "text-red-400" : "text-emerald-400"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${estaAbaixoDaMeta ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`} />
+              {estaAbaixoDaMeta ? "Tendência abaixo da meta" : "Tendência dentro da meta!"}
+            </p>
+          </div>
+        </motion.div>
+      </div>
+
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="glass-card rounded-2xl p-8 border border-white/10 bg-white/[0.02] mb-8 relative overflow-hidden">
+        <div className="flex justify-between items-end mb-4 relative z-10">
+          <div>
+            <h3 className="text-xl font-bold flex items-center gap-2"><Target className="h-6 w-6 text-emerald-400" /> Corrida para a Meta</h3>
+            {faltaParaMeta > 0 ? (
+              <p className="text-neutral-400 text-sm mt-1">Faltam <strong className="text-white">R$ {faltaParaMeta.toLocaleString("pt-BR")}</strong> para bater a meta!</p>
+            ) : (
+              <p className="text-emerald-400 text-sm mt-1 font-bold">🎉 Parabéns! Você bateu a sua meta individual!</p>
+            )}
+          </div>
+          <span className="text-5xl font-black text-white">{progresso.toFixed(1)}%</span>
+        </div>
+        
+        <div className="h-6 w-full bg-black/50 rounded-full overflow-hidden border border-white/10 relative z-10">
+          <motion.div 
+            initial={{ width: 0 }} 
+            animate={{ width: `${progresso}%` }} 
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className={`h-full ${progresso >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-emerald-600 to-emerald-400'} relative`}
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:20px_20px] animate-[shimmer_1s_infinite_linear]" />
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* ARENA DE BATALHA X1 */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-red-500/10 rounded-xl text-red-500 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+            <Swords className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white">Arena X1</h2>
+            <p className="text-sm text-neutral-400">Desafie um colega e veja quem fatura mais no mês!</p>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-3xl p-1 border border-white/10 bg-white/[0.02] overflow-hidden">
+          {!batalha && (
+            <div className="p-8 text-center bg-gradient-to-b from-black/0 to-black/40">
+              <ShieldAlert className="h-12 w-12 text-neutral-600 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-white mb-2">Nenhum desafio ativo</h3>
+              <p className="text-neutral-400 text-sm mb-6 max-w-md mx-auto">Selecione um vendedor da equipe abaixo e envie um convite para o combate X1. Só pode haver um vencedor!</p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
+                <select 
+                  value={colegaSelecionado}
+                  onChange={(e) => setColegaSelecionado(e.target.value)}
+                  className="w-full sm:w-2/3 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-red-500 transition-all appearance-none"
+                >
+                  <option value="" disabled>Escolha um oponente...</option>
+                  {colegas.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.role || 'Vendedor'})</option>
+                  ))}
+                </select>
+                <button 
+                  onClick={enviarDesafio}
+                  disabled={!colegaSelecionado || loadingBatalha}
+                  className="w-full sm:w-1/3 bg-red-500 hover:bg-red-600 text-white font-black py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loadingBatalha ? <Loader2 className="h-5 w-5 animate-spin" /> : "Desafiar!"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {batalha && batalha.status === 'pendente' && oponente && (
+            <div className="p-8 text-center bg-gradient-to-b from-red-500/5 to-transparent">
+              {batalha.challenger_id === vendedor.id ? (
+                <>
+                  <Loader2 className="h-12 w-12 text-red-500 mx-auto mb-4 animate-spin" />
+                  <h3 className="text-xl font-bold text-white mb-2">Desafio Enviado!</h3>
+                  <p className="text-neutral-400">Aguardando <strong className="text-white">{oponente.name}</strong> aceitar o seu combate...</p>
+                </>
+              ) : (
+                <>
+                  <Swords className="h-16 w-16 text-red-500 mx-auto mb-4 animate-bounce" />
+                  <h3 className="text-2xl font-black text-white mb-2">Você foi desafiado!</h3>
+                  <p className="text-neutral-400 mb-8"><strong className="text-white">{oponente.name}</strong> te chamou para a Arena X1. Vai encarar?</p>
+                  
+                  <div className="flex items-center justify-center gap-4">
+                    <button 
+                      onClick={() => responderDesafio('recusado')}
+                      disabled={loadingBatalha}
+                      className="px-6 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-neutral-300 font-bold transition-all flex items-center gap-2"
+                    >
+                      <X className="h-5 w-5" /> Arregar
+                    </button>
+                    <button 
+                      onClick={() => responderDesafio('ativo')}
+                      disabled={loadingBatalha}
+                      className="px-8 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all flex items-center gap-2 hover:scale-105"
+                    >
+                      <Check className="h-5 w-5" /> Aceitar Combate
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {batalha && batalha.status === 'ativo' && oponente && (
+            <div className="p-6 sm:p-10 relative overflow-hidden bg-gradient-to-b from-black/0 to-red-500/5">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[150px] font-black text-white/[0.02] pointer-events-none select-none">VS</div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20 relative z-10">
+                <div className="text-center md:text-right flex flex-col items-center md:items-end">
+                  <div className="h-20 w-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl font-black border-2 border-emerald-500 mb-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                    {vendedor.name.charAt(0)}
+                  </div>
+                  <h4 className="text-2xl font-black text-white">{vendedor.name.split(" ")[0]}</h4>
+                  <p className="text-emerald-400 font-bold uppercase text-xs tracking-widest mb-4">Você</p>
+                  <p className="text-5xl font-black text-white tracking-tighter">
+                    R$ {totalVendido.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                  </p>
+                  {totalVendido > oponenteTotal && <span className="mt-4 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase rounded-full border border-emerald-500/50 animate-pulse">Ganhando 🔥</span>}
+                </div>
+
+                <div className="text-center md:text-left flex flex-col items-center md:items-start">
+                  <div className="h-20 w-20 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-3xl font-black border-2 border-purple-500 mb-4 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                    {oponente.name.charAt(0)}
+                  </div>
+                  <h4 className="text-2xl font-black text-white">{oponente.name.split(" ")[0]}</h4>
+                  <p className="text-purple-400 font-bold uppercase text-xs tracking-widest mb-4">Oponente</p>
+                  <p className="text-5xl font-black text-white tracking-tighter">
+                    R$ {oponenteTotal.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                  </p>
+                  {oponenteTotal > totalVendido && <span className="mt-4 px-3 py-1 bg-purple-500/20 text-purple-400 text-xs font-black uppercase rounded-full border border-purple-500/50 animate-pulse">Ganhando 🔥</span>}
+                </div>
+              </div>
+
+              <div className="mt-10 h-4 w-full bg-neutral-900 rounded-full flex overflow-hidden border border-white/10 relative">
+                {totalVendido === 0 && oponenteTotal === 0 ? (
+                  <div className="w-full h-full bg-neutral-800"></div>
+                ) : (
+                  <>
+                    <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-1000" style={{ width: `${(totalVendido / (totalVendido + oponenteTotal)) * 100}%` }} />
+                    <div className="h-full bg-gradient-to-l from-purple-600 to-purple-400 transition-all duration-1000" style={{ width: `${(oponenteTotal / (totalVendido + oponenteTotal)) * 100}%` }} />
+                  </>
+                )}
+                <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-white/20 -translate-x-1/2 z-10"></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* HISTÓRICO DE VENDAS */}
+      <div className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02]">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Calendar className="h-5 w-5 text-neutral-400" /> Minhas Últimas Vendas</h3>
+        {vendas.length > 0 ? (
+          <div className="space-y-3">
+            {vendas.slice(0, 5).reverse().map((venda) => (
+              <div key={venda.id} className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5 hover:bg-white/[0.02] transition-colors">
+                <div>
+                  <p className="font-bold text-white text-sm">Venda registrada</p>
+                  <p className="text-xs text-neutral-500">{new Date(venda.sale_date).toLocaleDateString('pt-BR')}</p>
+                </div>
+                <span className="font-black text-emerald-400">R$ {Number(venda.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-neutral-500 italic text-center py-6">Você ainda não registrou vendas este mês. Bora fechar negócio!</p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,31 @@
+name: MAIA CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Validar Codebase (Lint + Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código Fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar Ambiente Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar Dependências Neutras (CI)
+        run: npm ci
+
+      - name: Validar Regras de Linting (P3)
+        run: npm run lint
+
+      - name: Validar Compilação de Produção Next.js (P3)
+        run: npm run build
