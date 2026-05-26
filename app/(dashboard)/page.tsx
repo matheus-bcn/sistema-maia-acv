@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getDashboardStats, buildMaiaBriefing } from "@/lib/data/dashboard";
 import { getMonthlyChartData } from "@/lib/data/sales";
+import { obterBriefingIAAction } from "@/lib/actions/ai-actions"; // Nova importação
 import { TermometroRitmo } from "@/components/TermometroRitmo";
 import { TermometroDiasUteis } from "@/components/TermometroDiasUteis";
 import { ContagemFechamento } from "@/components/ContagemFechamento";
@@ -16,8 +17,8 @@ import { MaiaBriefing } from "@/components/MaiaBriefing";
 import { MetaEquipe } from "@/components/MetaEquipe";
 import { NovaVendaModal } from "@/components/NovaVendaModal";
 import { dispararGritoDeGol } from "@/lib/utils";
-import { Users, Upload, Plus, AlertCircle, RefreshCw, Calendar as CalendarIcon, X, Target, Banknote, PieChart, TrendingUp } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Users, Upload, Plus, AlertCircle, RefreshCw, Calendar as CalendarIcon, X, Target, Banknote, PieChart, TrendingUp, LayoutDashboard } from "lucide-react";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import type { ChartPoint, SellerRanking } from "@/types";
 
 interface DashboardData {
@@ -36,14 +37,26 @@ interface CanaisData {
   dominante: string;
 }
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+};
+
+const getLocalFirstAndLastDay = () => {
+  const date = new Date();
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  
+  const firstDay = `${y}-${m}-01`;
+  const lastDayObj = new Date(y, date.getMonth() + 1, 0);
+  const lastDay = `${y}-${m}-${String(lastDayObj.getDate()).padStart(2, '0')}`;
+  
+  return { firstDay, lastDay };
 };
 
 export default function Home() {
@@ -57,16 +70,15 @@ export default function Home() {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   
   const [vendedorSelecionado, setVendedorSelecionado] = useState<SellerRanking | null>(null);
-  
   const [data, setData] = useState<DashboardData | null>(null);
   const [canais, setCanais] = useState<CanaisData>({ comercial: 0, atendimento: 0, pctComercial: 0, pctAtendimento: 0, dominante: "Empate" });
-  
   const [maiaAtiva, setMaiaAtiva] = useState(false);
   const [mensagemIA, setMensagemIA] = useState("");
 
+  const initialDates = getLocalFirstAndLastDay();
   const [periodo, setPeriodo] = useState<{ inicio: string; fim: string }>({
-    inicio: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    fim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    inicio: initialDates.firstDay,
+    fim: initialDates.lastDay
   });
 
   const carregarDados = useCallback(async () => {
@@ -77,10 +89,8 @@ export default function Home() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user?.email) {
-        // ==========================================
-        // CHAVE MESTRA: Admins supremos passam direto
-        // ==========================================
-        const isMasterAdmin = user.email === 'admin@onlinegrafica.com';
+        const masterAdminEmail = process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com";
+        const isMasterAdmin = user.email === masterAdminEmail;
 
         const { data: seller } = await supabase
           .from("sellers")
@@ -88,14 +98,12 @@ export default function Home() {
           .eq("email", user.email)
           .maybeSingle(); 
         
-        // 1. Se não existir na tabela E não for o admin mestre, é bloqueado.
         if (!seller && !isMasterAdmin) {
-          setError(`Acesso Negado: O e-mail (${user.email}) não está registado na tabela 'sellers' do Supabase.`);
+          setError(`Acesso Negado: O e-mail (${user.email}) não está registrado na tabela de equipe.`);
           setLoading(false);
           return;
         }
 
-        // 2. Se for um utilizador comum (não admin e não mestre), vai para o painel individual.
         if (seller && !seller.is_admin && !isMasterAdmin) {
           router.push("/meu-painel");
           return; 
@@ -116,28 +124,36 @@ export default function Home() {
         chartData: chart,
       });
 
-      let c = 0, a = 0;
-      if (salesData) {
-        salesData.forEach(row => {
-          const val = Number(row.amount);
-          if (row.channel === 'atendimento') a += val;
-          else c += val; 
-        });
-      }
-      const totalCanais = c + a;
+      const totaisCanais = (salesData || []).reduce((acc, row) => {
+        const val = Number(row.amount);
+        if (row.channel === 'atendimento') acc.a += val;
+        else acc.c += val;
+        return acc;
+      }, { c: 0, a: 0 });
+
+      const totalGeral = totaisCanais.c + totaisCanais.a;
+
       setCanais({
-        comercial: c,
-        atendimento: a,
-        pctComercial: totalCanais > 0 ? (c / totalCanais) * 100 : 0,
-        pctAtendimento: totalCanais > 0 ? (a / totalCanais) * 100 : 0,
-        dominante: c > a ? "Comercial" : a > c ? "Atendimento" : "Empate"
+        comercial: totaisCanais.c,
+        atendimento: totaisCanais.a,
+        pctComercial: totalGeral > 0 ? (totaisCanais.c / totalGeral) * 100 : 0,
+        pctAtendimento: totalGeral > 0 ? (totaisCanais.a / totalGeral) * 100 : 0,
+        dominante: totaisCanais.c > totaisCanais.a ? "Comercial" : totaisCanais.a > totaisCanais.c ? "Atendimento" : "Empate"
       });
 
-      setMensagemIA(buildMaiaBriefing(stats.totalFaturado, stats.metaGlobal));
+      // INTEGRAÇÃO DA IA (Erro corrigido aqui)
+      const briefingIA = await obterBriefingIAAction(stats);
+
+      if (briefingIA.success) {
+        setMensagemIA(briefingIA.briefing || "Análise concluída com sucesso.");
+      } else {
+        setMensagemIA(buildMaiaBriefing(stats.totalFaturado, stats.metaGlobal));
+      }
+      
       setLoading(false);
       setMaiaAtiva(true);
     } catch (err: any) {
-      setError("Não foi possível atualizar os dados.");
+      setError("Não foi possível atualizar os dados do painel.");
       setLoading(false);
     }
   }, [supabase, periodo, router]); 
@@ -147,7 +163,7 @@ export default function Home() {
   const handleNovaVendaSuccess = (valorVenda: number) => {
     if (valorVenda >= 5000) {
       dispararGritoDeGol();
-      setMensagemIA(`🚀 GOLAÇO! Uma venda de R$ ${valorVenda.toLocaleString('pt-BR')} foi registrada. Isso sim é um fechamento de peso!`);
+      setMensagemIA(`🚀 GOLAÇO! Uma venda de R$ ${valorVenda.toLocaleString('pt-BR')} foi registrada.`);
     } else {
       setMensagemIA(`✅ Venda de R$ ${valorVenda.toLocaleString('pt-BR')} registrada com sucesso.`);
     }
@@ -161,11 +177,13 @@ export default function Home() {
     const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     let diasUteisPassados = 0;
     let curDate = new Date(startOfMonth.getTime());
+    
     while (curDate <= hoje) {
       const dayOfWeek = curDate.getDay();
       if (dayOfWeek !== 0 && dayOfWeek !== 6) diasUteisPassados++; 
       curDate.setDate(curDate.getDate() + 1);
     }
+    
     return {
       ticketMedio: data.qtdVendas > 0 ? data.totalFaturado / data.qtdVendas : 0,
       mediaDiaria: diasUteisPassados > 0 ? data.totalFaturado / diasUteisPassados : 0
@@ -179,10 +197,11 @@ export default function Home() {
   return (
     <>
       <header className="mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between relative z-50">
-        <div className="flex flex-col gap-1">
-          <div className="relative h-10 w-40 mb-2">
-            <Image src="/logo maia.svg" alt="M.A.I.A Logo" fill sizes="160px" className="object-contain object-left" priority />
-          </div>
+        <div>
+          <h2 className="text-4xl font-black tracking-tight flex items-center gap-3 text-white">
+            <LayoutDashboard className="h-8 w-8 text-purple-500" />
+            Dashboard
+          </h2>
           <p className="text-neutral-400 mt-1">Acompanhamento de Vendas da Equipe</p>
         </div>
 
@@ -242,14 +261,14 @@ export default function Home() {
             <div className="grid gap-6 md:grid-cols-4">
               <motion.div variants={itemVariants} className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
                 <span className="text-sm font-medium text-neutral-400">Total Faturado</span>
-                <p className="text-3xl font-bold mt-2 text-emerald-400">R$ {data.totalFaturado.toLocaleString("pt-BR")}</p>
+                <p className="text-3xl font-bold mt-2 text-purple-400">R$ {data.totalFaturado.toLocaleString("pt-BR")}</p>
               </motion.div>
 
               <motion.div 
                 variants={itemVariants} 
                 role={data.topSeller ? "button" : undefined} 
                 onClick={() => data.topSeller && setVendedorSelecionado(data.topSeller)} 
-                className={`glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-center ${data.topSeller ? "cursor-pointer group hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all" : ""}`}
+                className={`glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-center ${data.topSeller ? "cursor-pointer group hover:border-purple-500/40 hover:bg-white/[0.04] transition-all" : ""}`}
               >
                 <span className="text-sm font-medium text-neutral-400 group-hover:text-white transition-colors">Vendedor Destaque</span>
                 <div className="flex items-center gap-3 mt-2">
@@ -258,7 +277,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-lg font-bold leading-tight">{data.topSeller?.seller.name ?? "—"}</p>
-                    {data.topSeller && <span className="text-xs text-emerald-400 font-medium">Ver detalhes</span>}
+                    {data.topSeller && <span className="text-xs text-purple-400 font-medium">Ver detalhes</span>}
                   </div>
                 </div>
               </motion.div>
@@ -293,7 +312,7 @@ export default function Home() {
                       <Target className="h-4 w-4 text-neutral-400" />
                       <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Média Diária Faturada</span>
                     </div>
-                    <span className="text-2xl font-black text-emerald-400 tracking-tight">R$ {metricasQualidade.mediaDiaria.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                    <span className="text-2xl font-black text-purple-400 tracking-tight">R$ {metricasQualidade.mediaDiaria.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
                     <p className="text-[10px] text-neutral-500 mt-2 font-medium">Calculado com base nos dias úteis trabalhados até o momento.</p>
                   </div>
                 </div>
@@ -305,7 +324,7 @@ export default function Home() {
             <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-3 mt-2">
               <div className="glass-card rounded-xl border border-white/5 bg-gradient-to-br from-white/[0.05] to-transparent p-8 lg:col-span-1 flex flex-col justify-center relative overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                  <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/10 text-purple-400">
                     <TrendingUp className="h-5 w-5" />
                   </div>
                   <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400">Canal Dominante</h3>
@@ -330,12 +349,12 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                         <span className="text-sm font-bold text-white uppercase tracking-wider">Comercial</span>
                       </div>
                       <span className="text-2xl font-black text-white">R$ {canais.comercial.toLocaleString('pt-BR')}</span>
                     </div>
-                    <span className="text-3xl font-black text-emerald-500">{canais.pctComercial.toFixed(1)}%</span>
+                    <span className="text-3xl font-black text-purple-500">{canais.pctComercial.toFixed(1)}%</span>
                   </div>
                   <div className="w-full h-[1px] bg-white/10"></div>
                   <div className="flex items-center justify-between">

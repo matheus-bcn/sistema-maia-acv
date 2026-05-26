@@ -228,7 +228,7 @@ export default function CalendarioPage() {
 
   const getEventColorInfo = (tipo?: string) => {
     if (tipo === "treinamento") return { bg: "bg-yellow-500/20", border: "border-yellow-500/30", text: "text-yellow-400", dot: "bg-yellow-400" };
-    if (tipo === "meta") return { bg: "bg-emerald-500/20", border: "border-emerald-500/30", text: "text-emerald-400", dot: "bg-emerald-400" };
+    if (tipo === "meta") return { bg: "bg-purple-500/20", border: "border-purple-500/30", text: "text-purple-400", dot: "bg-purple-400" };
     return { bg: "bg-blue-500/20", border: "border-blue-500/30", text: "text-blue-400", dot: "bg-blue-400" }; 
   };
 
@@ -318,7 +318,7 @@ export default function CalendarioPage() {
                           onClick={() => setDiaSelecionado(d.dia)}
                           className={`min-h-[80px] rounded-lg border p-2 relative transition-colors cursor-pointer ${
                             d.status === "success"
-                              ? "border-emerald-500/30 bg-emerald-500/10 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]"
+                              ? "border-purple-500/30 bg-purple-500/10 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]"
                               : d.status === "danger"
                                 ? "border-red-500/30 bg-red-500/10 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]"
                                 : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -342,7 +342,7 @@ export default function CalendarioPage() {
                           {d.status !== "neutral" && (
                             <div className="absolute bottom-2 right-2">
                               {d.status === "success" ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-400 drop-shadow-md" />
+                                <CheckCircle2 className="h-4 w-4 text-purple-400 drop-shadow-md" />
                               ) : (
                                 <XCircle className="h-4 w-4 text-red-400 drop-shadow-md" />
                               )}
@@ -368,7 +368,7 @@ export default function CalendarioPage() {
                   <div className="space-y-3">
                     <p className="text-sm flex justify-between items-center bg-black/30 p-3 rounded-lg border border-white/5">
                       <span className="text-neutral-400 font-medium">Dias na meta</span>
-                      <span className="text-emerald-400 font-black text-lg">{diasNaMeta}</span>
+                      <span className="text-purple-400 font-black text-lg">{diasNaMeta}</span>
                     </p>
                     <p className="text-sm flex justify-between items-center bg-black/30 p-3 rounded-lg border border-white/5">
                       <span className="text-neutral-400 font-medium">Dias abaixo</span>
@@ -442,7 +442,7 @@ export default function CalendarioPage() {
                             <button 
                               type="button" 
                               onClick={() => setNovoEvento({...novoEvento, tipo: "meta"})} 
-                              className={`py-1.5 rounded text-[10px] font-bold border transition-colors ${novoEvento.tipo === 'meta' ? 'bg-emerald-500 text-black border-emerald-500' : 'bg-transparent text-neutral-500 border-white/10 hover:bg-white/5'}`}
+                              className={`py-1.5 rounded text-[10px] font-bold border transition-colors ${novoEvento.tipo === 'meta' ? 'bg-purple-500 text-black border-purple-500' : 'bg-transparent text-neutral-500 border-white/10 hover:bg-white/5'}`}
                             >
                               Meta
                             </button>
@@ -515,14 +515,14 @@ export default function CalendarioPage() {
               <div className="mb-6 border-b border-white/10 pb-4">
                 <h3 className="text-2xl font-black text-white mb-1">Dia {diaSelecionado}</h3>
                 <p className="text-sm text-neutral-400">
-                  Total faturado: <strong className="text-emerald-400 text-lg">R$ {(dailyMap.get(diaSelecionado) ?? 0).toLocaleString('pt-BR')}</strong>
+                  Total faturado: <strong className="text-purple-400 text-lg">R$ {(dailyMap.get(diaSelecionado) ?? 0).toLocaleString('pt-BR')}</strong>
                 </p>
               </div>
 
               {/* LISTA DE VENDAS DO DIA */}
               <div className="mb-6">
                 <h4 className="text-xs font-bold uppercase text-neutral-500 mb-3 flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-emerald-500" /> Vendas Realizadas
+                  <DollarSign className="h-4 w-4 text-purple-500" /> Vendas Realizadas
                 </h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                   {vendasRaw.filter(v => {
@@ -535,7 +535,7 @@ export default function CalendarioPage() {
                     }).map(v => (
                       <div key={v.id} className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5 hover:bg-white/5 transition-colors">
                         <span className="text-sm text-neutral-300 font-medium">{v.seller?.name || "Desconhecido"}</span>
-                        <span className="text-sm font-bold text-emerald-400">R$ {Number(v.amount).toLocaleString('pt-BR')}</span>
+                        <span className="text-sm font-bold text-purple-400">R$ {Number(v.amount).toLocaleString('pt-BR')}</span>
                       </div>
                     ))
                   ) : (

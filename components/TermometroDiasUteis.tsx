@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -11,14 +11,9 @@ interface TermometroDiasUteisProps {
 
 export function TermometroDiasUteis({ meta, faturado }: TermometroDiasUteisProps) {
   const [mounted, setMounted] = useState(false);
+  const [dados, setDados] = useState({ totalBusinessDays: 1, businessDaysPassed: 0 });
 
   useEffect(() => {
-    // Engatilha a animação ao montar o componente
-    setTimeout(() => setMounted(true), 100);
-  }, []);
-
-  // 1. CÁLCULO DE DIAS ÚTEIS
-  const { totalBusinessDays, businessDaysPassed } = useMemo(() => {
     const hoje = new Date();
     const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     const endOfMonth = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
@@ -34,18 +29,27 @@ export function TermometroDiasUteis({ meta, faturado }: TermometroDiasUteisProps
       return count;
     };
 
-    return {
+    setDados({
       totalBusinessDays: getBusinessDays(startOfMonth, endOfMonth),
       businessDaysPassed: getBusinessDays(startOfMonth, hoje)
-    };
+    });
+    
+    // Pequeno atraso para a animação do ponteiro entrar suave
+    setTimeout(() => setMounted(true), 100);
   }, []);
 
-  // 2. MATEMÁTICA DO RITMO
+  if (!mounted) {
+     return <div className="glass-card min-h-[340px] rounded-xl border border-white/5 bg-white/[0.02] animate-pulse" />;
+  }
+
+  const { totalBusinessDays, businessDaysPassed } = dados;
+
+  // MATEMÁTICA DO RITMO
   const expectedPercentage = businessDaysPassed / Math.max(totalBusinessDays, 1);
   const expectedVolume = meta * expectedPercentage;
   const pacing = expectedVolume > 0 ? (faturado / expectedVolume) * 100 : 0;
 
-  // 3. ZONAS DE STATUS E EFEITO NEON
+  // ZONAS DE STATUS E EFEITO NEON
   let status = "Calculando...";
   let colorClass = "text-neutral-500";
   let neonGlow = "";
@@ -63,7 +67,7 @@ export function TermometroDiasUteis({ meta, faturado }: TermometroDiasUteisProps
     activeZone = 2;
   } else if (pacing < 120) {
     status = "BEM";
-    colorClass = "text-emerald-400";
+    colorClass = "text-purple-400";
     neonGlow = "drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]";
     activeZone = 3;
   } else {
@@ -73,7 +77,7 @@ export function TermometroDiasUteis({ meta, faturado }: TermometroDiasUteisProps
     activeZone = 4;
   }
 
-  // 4. CÁLCULO DO ÂNGULO DA AGULHA
+  // CÁLCULO DO ÂNGULO DA AGULHA
   let needleAngle = -90;
   if (pacing < 80) {
     needleAngle = -90 + (pacing / 80) * 45; 
@@ -114,16 +118,11 @@ export function TermometroDiasUteis({ meta, faturado }: TermometroDiasUteisProps
 
       <div className="flex-1 flex flex-col items-center justify-center pt-6">
         <svg viewBox="0 0 200 120" className="w-full max-w-[240px] overflow-visible">
-          {/* BLOCOS COLORIDOS DO ARCO COM EFEITO NEON DINÂMICO */}
           <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#f43f5e" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${q - 2} ${circ}`} strokeDashoffset={0} className={`transition-all duration-500 ${activeZone === 1 || activeZone === 0 ? 'opacity-100 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]' : 'opacity-10'}`} />
-          
           <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#facc15" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${q - 2} ${circ}`} strokeDashoffset={-q} className={`transition-all duration-500 ${activeZone === 2 ? 'opacity-100 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]' : 'opacity-10'}`} />
-          
           <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#34d399" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${q - 2} ${circ}`} strokeDashoffset={-q * 2} className={`transition-all duration-500 ${activeZone === 3 ? 'opacity-100 drop-shadow-[0_0_12px_rgba(52,211,153,0.6)]' : 'opacity-10'}`} />
-          
           <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#38bdf8" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${q - 2} ${circ}`} strokeDashoffset={-q * 3} className={`transition-all duration-500 ${activeZone === 4 ? 'opacity-100 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]' : 'opacity-10'}`} />
 
-          {/* AGULHA E HUB COM BRILHO BRANCO NEON */}
           <line 
             x1="100" y1="100" x2="100" y2="35" 
             stroke="#ffffff" strokeWidth="4" strokeLinecap="round" 
@@ -133,7 +132,6 @@ export function TermometroDiasUteis({ meta, faturado }: TermometroDiasUteisProps
           <circle cx="100" cy="100" r="8" fill="#111" stroke="#ffffff" strokeWidth="3" className="drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
         </svg>
 
-        {/* TEXTO DE STATUS COM BRILHO NEON DA COR ATIVA */}
         <div className="mt-2 text-center h-10">
           <p className={`font-black text-3xl tracking-tighter uppercase ${colorClass} ${mounted ? neonGlow : ''} transition-all duration-1000`}>
             {mounted ? status : ''}

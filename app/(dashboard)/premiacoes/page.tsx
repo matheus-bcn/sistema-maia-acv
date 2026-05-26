@@ -110,7 +110,7 @@ export default function PremiacoesPage() {
 
       // Paleta de Ícones e Cores Premium cíclicas para renderizar os cards com estilo gamificado
       const iconesDisponiveis = [Zap, Target, Shield, Trophy, Star, Medal];
-      const coresDisponiveis = ["text-blue-400", "text-orange-400", "text-purple-400", "text-yellow-500", "text-emerald-400", "text-red-400"];
+      const coresDisponiveis = ["text-blue-400", "text-orange-400", "text-purple-400", "text-yellow-500", "text-purple-400", "text-red-400"];
 
       const conquistasCalculadas: Conquista[] = (awardsData || []).map((award: any, index: number) => {
         // Converte o custo/meta da premiação cadastrado no admin
@@ -158,7 +158,7 @@ export default function PremiacoesPage() {
         
         <div className="bg-black/40 border border-white/10 px-5 py-3 rounded-xl backdrop-blur-md text-right">
           <p className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider mb-0.5">Meu Ritmo no Mês</p>
-          <p className="text-xl font-black text-emerald-400">R$ {meuFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+          <p className="text-xl font-black text-purple-400">R$ {meuFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
       </header>
 
@@ -214,13 +214,13 @@ export default function PremiacoesPage() {
                 className={`glass-card relative overflow-hidden rounded-2xl p-6 border flex flex-col justify-between transition-all duration-300 ${
                   !item.conquistado 
                     ? "border-white/5 bg-white/[0.01] opacity-50" 
-                    : "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.03] to-transparent shadow-[0_0_30px_rgba(16,185,129,0.04)]"
+                    : "border-purple-500/30 bg-gradient-to-br from-purple-500/[0.03] to-transparent shadow-[0_0_30px_rgba(16,185,129,0.04)]"
                 }`}
               >
                 {/* Badge Superior Direito de Status */}
                 <div className="absolute top-4 right-4 z-20">
                   {item.conquistado ? (
-                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-full border border-purple-500/30">
                       <Unlock className="h-3 w-3" /> Liberado
                     </span>
                   ) : (
@@ -234,7 +234,7 @@ export default function PremiacoesPage() {
                   {/* Container do Ícone */}
                   <div className={`h-12 w-12 rounded-xl border flex items-center justify-center mb-5 transition-transform ${
                     item.conquistado 
-                      ? "bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
+                      ? "bg-purple-500/10 border-purple-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
                       : "bg-white/5 border-white/10 text-neutral-500"
                   }`}>
                     <item.icone className={`h-6 w-6 ${item.conquistado ? item.cor : "text-neutral-500"}`} />
@@ -253,7 +253,7 @@ export default function PremiacoesPage() {
                 <div className="space-y-2 mt-auto">
                   <div className="flex justify-between items-end text-[10px] font-bold uppercase tracking-wider">
                     <span className="text-neutral-500">Progresso Alvo</span>
-                    <span className={item.conquistado ? "text-emerald-400" : "text-white"}>
+                    <span className={item.conquistado ? "text-purple-400" : "text-white"}>
                       {item.progresso.toFixed(0)}%
                     </span>
                   </div>
@@ -266,7 +266,7 @@ export default function PremiacoesPage() {
                       transition={{ duration: 1.2, ease: "easeOut" }}
                       className={`h-full ${
                         item.conquistado 
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
+                          ? 'bg-gradient-to-r from-purple-500 to-teal-400' 
                           : 'bg-gradient-to-r from-purple-600 to-indigo-500'
                       }`}
                     />
@@ -275,7 +275,7 @@ export default function PremiacoesPage() {
                   {/* Requisito de Valor Base */}
                   <div className="flex justify-between items-center text-xs pt-1">
                     <span className="text-neutral-500 font-medium">Requisito</span>
-                    <span className={`font-bold ${item.conquistado ? "text-emerald-400" : "text-neutral-300"}`}>
+                    <span className={`font-bold ${item.conquistado ? "text-purple-400" : "text-neutral-300"}`}>
                       {item.requisito}
                     </span>
                   </div>

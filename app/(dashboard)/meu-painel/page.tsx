@@ -166,7 +166,7 @@ export default function MeuPainelPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
+        <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function MeuPainelPage() {
           <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
             Olá, {vendedor.name.split(" ")[0]}
           </h2>
-          <p className="text-emerald-400 font-bold mt-1 uppercase tracking-wider text-sm">
+          <p className="text-purple-400 font-bold mt-1 uppercase tracking-wider text-sm">
             Nível: {vendedor.category || vendedor.role || "Vendedor"}
           </p>
         </div>
@@ -199,12 +199,12 @@ export default function MeuPainelPage() {
       </header>
 
       <div className="grid gap-6 md:grid-cols-4 mb-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-emerald-500/10 to-transparent flex flex-col justify-between">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-emerald-500/20 rounded-lg text-emerald-400"><DollarSign className="h-5 w-5" /></div>
+            <div className="p-2.5 bg-purple-500/20 rounded-lg text-purple-400"><DollarSign className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Meu Faturamento</h3>
           </div>
-          <p className="text-3xl font-black text-emerald-400">R$ {totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          <p className="text-3xl font-black text-purple-400">R$ {totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
@@ -224,7 +224,7 @@ export default function MeuPainelPage() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-white/[0.02] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
-          <div className="absolute top-3 -right-12 bg-emerald-500 text-black text-[8px] font-black uppercase tracking-widest py-0.5 px-12 rotate-45 transform shadow-md">
+          <div className="absolute top-3 -right-12 bg-purple-500 text-black text-[8px] font-black uppercase tracking-widest py-0.5 px-12 rotate-45 transform shadow-md">
             IA Predictor
           </div>
           <div>
@@ -235,8 +235,8 @@ export default function MeuPainelPage() {
           <div className="bg-black/40 rounded-xl p-3 border border-white/5 mt-3">
             <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest block mb-0.5">Projeção de Fechamento</span>
             <p className="text-lg font-black text-white">R$ {tendenciaFechamento.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
-            <p className={`text-[10px] font-bold mt-1 flex items-center gap-1 ${estaAbaixoDaMeta ? "text-red-400" : "text-emerald-400"}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${estaAbaixoDaMeta ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`} />
+            <p className={`text-[10px] font-bold mt-1 flex items-center gap-1 ${estaAbaixoDaMeta ? "text-red-400" : "text-purple-400"}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${estaAbaixoDaMeta ? "bg-red-500 animate-pulse" : "bg-purple-500"}`} />
               {estaAbaixoDaMeta ? "Tendência abaixo da meta" : "Tendência dentro da meta!"}
             </p>
           </div>
@@ -246,11 +246,11 @@ export default function MeuPainelPage() {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="glass-card rounded-2xl p-8 border border-white/10 bg-white/[0.02] mb-8 relative overflow-hidden">
         <div className="flex justify-between items-end mb-4 relative z-10">
           <div>
-            <h3 className="text-xl font-bold flex items-center gap-2"><Target className="h-6 w-6 text-emerald-400" /> Corrida para a Meta</h3>
+            <h3 className="text-xl font-bold flex items-center gap-2"><Target className="h-6 w-6 text-purple-400" /> Corrida para a Meta</h3>
             {faltaParaMeta > 0 ? (
               <p className="text-neutral-400 text-sm mt-1">Faltam <strong className="text-white">R$ {faltaParaMeta.toLocaleString("pt-BR")}</strong> para bater a meta!</p>
             ) : (
-              <p className="text-emerald-400 text-sm mt-1 font-bold">🎉 Parabéns! Você bateu a sua meta individual!</p>
+              <p className="text-purple-400 text-sm mt-1 font-bold">🎉 Parabéns! Você bateu a sua meta individual!</p>
             )}
           </div>
           <span className="text-5xl font-black text-white">{progresso.toFixed(1)}%</span>
@@ -261,7 +261,7 @@ export default function MeuPainelPage() {
             initial={{ width: 0 }} 
             animate={{ width: `${progresso}%` }} 
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className={`h-full ${progresso >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-emerald-600 to-emerald-400'} relative`}
+            className={`h-full ${progresso >= 100 ? 'bg-purple-500' : 'bg-gradient-to-r from-purple-600 to-purple-400'} relative`}
           >
             <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:20px_20px] animate-[shimmer_1s_infinite_linear]" />
           </motion.div>
@@ -350,15 +350,15 @@ export default function MeuPainelPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20 relative z-10">
                 <div className="text-center md:text-right flex flex-col items-center md:items-end">
-                  <div className="h-20 w-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl font-black border-2 border-emerald-500 mb-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                  <div className="h-20 w-20 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-3xl font-black border-2 border-purple-500 mb-4 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                     {vendedor.name.charAt(0)}
                   </div>
                   <h4 className="text-2xl font-black text-white">{vendedor.name.split(" ")[0]}</h4>
-                  <p className="text-emerald-400 font-bold uppercase text-xs tracking-widest mb-4">Você</p>
+                  <p className="text-purple-400 font-bold uppercase text-xs tracking-widest mb-4">Você</p>
                   <p className="text-5xl font-black text-white tracking-tighter">
                     R$ {totalVendido.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
                   </p>
-                  {totalVendido > oponenteTotal && <span className="mt-4 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase rounded-full border border-emerald-500/50 animate-pulse">Ganhando 🔥</span>}
+                  {totalVendido > oponenteTotal && <span className="mt-4 px-3 py-1 bg-purple-500/20 text-purple-400 text-xs font-black uppercase rounded-full border border-purple-500/50 animate-pulse">Ganhando 🔥</span>}
                 </div>
 
                 <div className="text-center md:text-left flex flex-col items-center md:items-start">
@@ -379,7 +379,7 @@ export default function MeuPainelPage() {
                   <div className="w-full h-full bg-neutral-800"></div>
                 ) : (
                   <>
-                    <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-1000" style={{ width: `${(totalVendido / (totalVendido + oponenteTotal)) * 100}%` }} />
+                    <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-1000" style={{ width: `${(totalVendido / (totalVendido + oponenteTotal)) * 100}%` }} />
                     <div className="h-full bg-gradient-to-l from-purple-600 to-purple-400 transition-all duration-1000" style={{ width: `${(oponenteTotal / (totalVendido + oponenteTotal)) * 100}%` }} />
                   </>
                 )}
@@ -401,7 +401,7 @@ export default function MeuPainelPage() {
                   <p className="font-bold text-white text-sm">Venda registrada</p>
                   <p className="text-xs text-neutral-500">{new Date(venda.sale_date).toLocaleDateString('pt-BR')}</p>
                 </div>
-                <span className="font-black text-emerald-400">R$ {Number(venda.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="font-black text-purple-400">R$ {Number(venda.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             ))}
           </div>

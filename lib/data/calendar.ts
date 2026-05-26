@@ -6,12 +6,17 @@ export async function listCalendarEvents(
   month: number,
   year: number
 ): Promise<CalendarEvent[]> {
+  // Calcula o primeiro e último dia do mês para buscar na coluna event_date
+  const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
   const { data, error } = await supabase
     .from("calendar_events")
     .select("*")
-    .eq("month", month)
-    .eq("year", year)
-    .order("event_day");
+    .gte("event_date", startStr)
+    .lte("event_date", endStr)
+    .order("event_date");
 
   if (error || !data) return [];
   return data as CalendarEvent[];

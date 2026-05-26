@@ -3,58 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-// 1. CADASTRAR NOVO VENDEDOR
-export async function createSellerAction(name: string) {
+// 1. ATUALIZAR OU CRIAR META MENSAL DE EQUIPE
+export async function updateMonthlyGoalAction(amount: number) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
-
-  if (!name.trim()) return { error: "O nome do vendedor é obrigatório." };
-
-  const { data, error } = await supabase
-    .from("sellers")
-    .insert({ name, status: "ativo" }) // Assumindo que a tabela sellers tem um campo status
-    .select()
-    .single();
-
-  if (error) return { error: error.message };
-
-  revalidatePath("/equipe", "page");
-  revalidatePath("/dashboard", "layout"); // Atualiza dropdowns de nova venda
-  return { data, error: null };
-}
-
-// 2. ATUALIZAR OU CRIAR META MENSAL
-export async function updateMonthlyGoalAction(amount: number, month: number, year: number) {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
-
   if (amount <= 0) return { error: "A meta deve ser maior que zero." };
 
-  // Usamos upsert para atualizar se já existir uma meta para o mês/ano, ou criar uma nova
+  // Deleta a meta de equipe atual e insere a nova (para evitar acúmulo no DB)
+  await supabase.from("goals").delete().eq("type", "equipe");
+  
   const { error } = await supabase
     .from("goals")
-    .upsert(
-      { amount, month, year },
-      { onConflict: 'month, year' } // Exige que exista uma constraint (unique) no banco para month+year
-    );
+    .insert({ type: "equipe", target_value: amount });
 
-  // Fallback caso não tenha a constraint unique configurada no banco
-  if (error && error.code === '23505') {
-     return { error: "Erro de conflito. Verifique as chaves da tabela goals." };
-  } else if (error) {
-     return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   revalidatePath("/configuracao", "page");
   revalidatePath("/dashboard", "layout");
   return { success: true, error: null };
 }
 
-// 3. CADASTRAR PREMIAÇÃO
+// 2. CADASTRAR PREMIAÇÃO
 export async function createAwardAction(title: string, requiredAmount: number, description: string) {
   const supabase = await createClient();
 

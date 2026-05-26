@@ -1,8 +1,10 @@
 "use server"
 
+import { revalidatePath } from "next/cache";
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
-// 1. AÇÃO PARA CRIAR VENDEDOR, LOGIN E TELEFONE (CORRIGIDA)
+// 1. CRIAR VENDEDOR COM LOGIN SEGURO (E INTEGRAÇÃO COM TRIGGER DO DB)
 export async function criarVendedorComLoginAction(
   nome: string, 
   email: string, 
@@ -16,80 +18,87 @@ export async function criarVendedorComLoginAction(
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Chave SUPABASE_SERVICE_ROLE_KEY não encontrada no .env.local. Pare o terminal e rode npm run dev novamente.");
+      throw new Error("Erro de ambiente: SUPABASE_SERVICE_ROLE_KEY ausente.");
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-    // A. Tenta criar o usuário na Autenticação do Supabase
+    // A. Cria o usuário no Auth (Isso dispara a Trigger no DB que cria a linha em 'sellers')
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: senha,
-      email_confirm: true 
+      email_confirm: true,
+      user_metadata: { name: nome } // Passa o nome para a Trigger
     });
 
-    // Se o usuário já existir no Auth, ignoramos o erro e seguimos para garantir a inserção na tabela
     if (authError && !authError.message.includes("already been registered")) {
       throw new Error("Erro no Auth: " + authError.message);
     }
 
-    // B. Cadastra o perfil preenchendo APENAS as colunas que existem de fato ('phone' e 'role')
-    const { error: dbError } = await supabaseAdmin.from('sellers').insert({
-      name: nome,
-      email: email,
-      phone: phone,
-      role: category,      // <-- CORREÇÃO: Salva o nível na coluna 'role' aceita pelo banco
-      status: 'Ativo',
-      is_admin: is_admin,
-      is_deleted: false
-    });
+    const userId = authData?.user?.id;
 
-    if (dbError) {
-      throw new Error("Erro no Banco (Sellers): " + dbError.message);
+    // B. Atualiza o perfil criado pela Trigger com as informações extras
+    if (userId) {
+      const { error: dbError } = await supabaseAdmin.from('sellers').update({
+        phone: phone,
+        role: category,
+        is_admin: is_admin,
+        status: 'Ativo'
+      }).eq('id', userId);
+
+      if (dbError) throw new Error("Erro ao atualizar perfil: " + dbError.message);
     }
 
+    revalidatePath("/equipe");
+    revalidatePath("/dashboard", "layout");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-// 2. AÇÃO PARA DELETAR LOGIN E OCULTAR VENDEDOR (Soft Delete)
+// 2. ATUALIZAR STATUS DO VENDEDOR (Ativo/Inativo)
+export async function updateSellerStatusAction(id: string, status: "Ativo" | "Inativo") {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Acesso negado.");
+
+  const { error } = await supabase.from('sellers').update({ status }).eq('id', id);
+  
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/equipe");
+  revalidatePath("/dashboard", "layout");
+  return true;
+}
+
+// 3. DELETAR LOGIN E OCULTAR VENDEDOR (Soft Delete)
 export async function deletarVendedorAction(id: string, email: string) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Chave SUPABASE_SERVICE_ROLE_KEY ausente. Verifique o .env.local e reinicie o servidor.");
-    }
+    if (!supabaseUrl || !supabaseKey) throw new Error("Credenciais de Admin ausentes.");
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-    // A. Oculta o vendedor mantendo as vendas dele na estatística geral
+    // A. Soft Delete no banco
     const { error: dbError } = await supabaseAdmin.from('sellers').update({ 
-      status: 'Inativo', 
-      is_deleted: true 
+      status: 'Inativo' 
     }).eq('id', id);
 
-    if (dbError) {
-      throw new Error("Erro na Tabela Sellers: " + dbError.message + " (Verifique se a coluna 'is_deleted' foi criada).");
-    }
+    if (dbError) throw new Error("Erro ao desativar vendedor: " + dbError.message);
 
-    // B. Procura o usuário no Auth pelo e-mail e deleta o acesso
+    // B. Deleta o acesso na Autenticação
     const { data: { users }, error: authListError } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (authListError) {
-      throw new Error("Erro ao buscar login: " + authListError.message);
-    }
+    if (authListError) throw new Error("Erro ao buscar usuários: " + authListError.message);
 
     const userToDelete = users.find(u => u.email === email);
-
     if (userToDelete) {
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userToDelete.id);
-      if (deleteError) throw new Error("Erro ao deletar login: " + deleteError.message);
+      if (deleteError) throw new Error("Erro ao remover login: " + deleteError.message);
     }
 
+    revalidatePath("/equipe");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

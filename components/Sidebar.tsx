@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Home, Trophy, Calendar, Medal,
@@ -23,18 +24,24 @@ export function Sidebar() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user?.email) {
-        // ==========================================
-        // CHAVE MESTRA: Garante acesso total ao admin
-        // ==========================================
-        const isMasterAdmin = user.email === 'admin@onlinegrafica.com';
+        // Blindagem contra Case Sensitivity: Força tudo para minúsculo
+        const userEmail = user.email.toLowerCase();
+        const masterAdminEmail = (process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com").toLowerCase();
+        
+        const isMasterAdmin = userEmail === masterAdminEmail;
 
         const { data: seller } = await supabase
           .from("sellers")
           .select("is_admin")
-          .eq("email", user.email)
-          .maybeSingle(); // Evita erros se não encontrar na tabela
+          .eq("email", userEmail)
+          .maybeSingle(); 
         
-        setIsAdmin(!!seller?.is_admin || isMasterAdmin);
+        // Libera as rotas de admin incondicionalmente se for a conta master ou se estiver setado no BD
+        if (isMasterAdmin || seller?.is_admin) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
       }
       setLoading(false);
     };
@@ -56,7 +63,7 @@ export function Sidebar() {
   ];
 
   const rotasAdmin = [
-    { nome: "Home", caminho: "/", icone: Home }, // <-- ALTERADO AQUI
+    { nome: "Home", caminho: "/", icone: Home },
     { nome: "Ranking", caminho: "/ranking", icone: Trophy },
     { nome: "Calendário", caminho: "/calendario", icone: Calendar },
     { nome: "Premiações", caminho: "/premiacoes", icone: Medal },
@@ -69,15 +76,17 @@ export function Sidebar() {
   const rotas = loading ? [] : (isAdmin ? rotasAdmin : rotasVendedor);
 
   return (
-    <aside className="glass-card flex h-screen w-64 flex-col justify-between border-r p-6 relative z-50">
+    <aside className="glass-card flex h-screen w-64 flex-col justify-between border-r border-white/10 p-6 relative z-50">
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
         
-        {/* LOGÓTIPO SUBSTITUÍDO AQUI */}
-        <div className="mb-10 flex items-center justify-center">
-          <img 
+        <div className="mb-10 flex items-center justify-center relative h-16 w-full">
+          <Image 
             src="/logo.png" 
             alt="Logótipo MAIA" 
-            className="h-16 w-auto object-contain hover:scale-105 transition-transform drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]" 
+            fill
+            sizes="160px"
+            className="object-contain hover:scale-105 transition-transform drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]" 
+            priority
           />
         </div>
 

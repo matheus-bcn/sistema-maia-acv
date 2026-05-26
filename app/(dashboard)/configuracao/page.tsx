@@ -276,7 +276,7 @@ export default function ConfiguracaoPage() {
             exit={{ opacity: 0, y: -10 }}
             className={`mb-6 flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md ${
               feedback.type === "success" 
-                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                ? "bg-purple-500/10 border-purple-500/20 text-purple-400" 
                 : "bg-red-500/10 border-red-500/20 text-red-400"
             }`}
           >
@@ -298,7 +298,7 @@ export default function ConfiguracaoPage() {
               <>
                 <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
                   <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-emerald-400" />
+                    <Target className="h-5 w-5 text-purple-400" />
                     Meta Global da Equipe
                   </h3>
                   <label className="text-xs font-bold text-neutral-500 uppercase">Valor Mensal (R$)</label>
@@ -308,7 +308,7 @@ export default function ConfiguracaoPage() {
                       type="text"
                       value={metaEquipe}
                       onChange={handleMetaEquipeChange}
-                      className="w-full bg-black/50 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-xl font-black text-emerald-400 outline-none focus:ring-2 focus:ring-white/20"
+                      className="w-full bg-black/50 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-xl font-black text-purple-400 outline-none focus:ring-2 focus:ring-white/20"
                     />
                   </div>
                 </div>

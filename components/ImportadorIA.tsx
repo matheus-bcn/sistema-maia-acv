@@ -131,7 +131,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
             />
             
             {file ? (
-              <div className="flex flex-col items-center justify-center text-emerald-400">
+              <div className="flex flex-col items-center justify-center text-purple-400">
                 <FileSpreadsheet className="h-10 w-10 mb-2 animate-pulse" />
                 <p className="text-sm font-bold truncate max-w-xs">{file.name}</p>
                 <p className="text-xs text-neutral-500 mt-1">{(file.size / 1024).toFixed(1)} KB - Arquivo carregado</p>
@@ -154,7 +154,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
         )}
 
         {successMessage && (
-          <div className="flex items-start gap-2 text-sm text-emerald-400 mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+          <div className="flex items-start gap-2 text-sm text-purple-400 mt-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
             <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <p>{successMessage}</p>
           </div>

@@ -10,11 +10,14 @@ import {
   Zap,
   AlertCircle,
   RefreshCw,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getDashboardStats } from "@/lib/data/dashboard";
 import { getSellerRankings, getSellerDiagnostics } from "@/lib/data/sellers";
 import { generateInsights } from "@/lib/data/insights";
+import { analisarRelatorioAction } from "@/lib/actions/ai-actions";
 import type { InsightItem } from "@/types";
 
 const iconMap = {
@@ -64,6 +67,10 @@ export default function RelatorioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Estados para a IA do Gemini
+  const [insightIA, setInsightIA] = useState<string | null>(null);
+  const [loadingIA, setLoadingIA] = useState(false);
+
   // P0 - Filtro de período (Padrão: Mês Corrente)
   const [periodo, setPeriodo] = useState(() => {
     const now = new Date();
@@ -76,6 +83,7 @@ export default function RelatorioPage() {
   const carregarRelatorios = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setInsightIA(null);
 
     try {
       // P0 - Injetando as datas nas funções de busca
@@ -98,11 +106,33 @@ export default function RelatorioPage() {
       );
       
       setInsights(ins);
+      setLoading(false); // Libera o carregamento principal
+
+      // Dispara a IA em background para não travar a tela
+      setLoadingIA(true);
+      
+      // Criamos um payload leve para a IA não gastar muitos tokens
+      const payloadIA = {
+        faturamentoTotal: stats.totalFaturado,
+        metaEquipe: stats.metaGlobal,
+        vendedores: diag.map(d => ({
+          nome: d.nome,
+          percentual: Math.round((d.realizado / d.meta) * 100) || 0,
+          status: d.status
+        }))
+      };
+
+      const resultadoIA = await analisarRelatorioAction(payloadIA);
+      if (resultadoIA.success) {
+        // CORREÇÃO APLICADA AQUI: Adicionado "|| null" para resolver o erro do TypeScript
+        setInsightIA(resultadoIA.insight || null);
+      }
     } catch (err) {
       console.error("Erro ao gerar relatórios:", err);
       setError("Falha ao gerar a inteligência e os relatórios. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
+      setLoadingIA(false);
     }
   }, [supabase, periodo]);
 
@@ -178,7 +208,7 @@ export default function RelatorioPage() {
                 <>
                   <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
                     <p className="text-sm text-neutral-400">Faturamento no período</p>
-                    <h3 className="text-3xl font-bold mt-2 text-emerald-400">
+                    <h3 className="text-3xl font-bold mt-2 text-purple-400">
                       R$ {total.toLocaleString("pt-BR")}
                     </h3>
                   </div>
@@ -194,11 +224,44 @@ export default function RelatorioPage() {
               )}
             </div>
 
+            {/* BLOCO DA INTELIGÊNCIA GEMINI AQUI */}
+            {!loading && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-card rounded-xl p-6 mb-6 border border-fuchsia-500/30 bg-purple-500/5 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-500"></div>
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20">
+                    <Sparkles className="h-5 w-5 text-fuchsia-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white uppercase tracking-wider">Análise de Dados M.A.I.A</h3>
+                </div>
+                
+                {loadingIA ? (
+                  <div className="flex items-center gap-3 text-neutral-400 py-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-fuchsia-400" />
+                    <p className="text-sm font-medium">A Gemini está processando a performance da equipe...</p>
+                  </div>
+                ) : insightIA ? (
+                  <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-line font-medium">
+                    {insightIA}
+                  </p>
+                ) : (
+                  <p className="text-neutral-500 text-sm italic">
+                    Não foi possível gerar a análise da inteligência artificial neste momento.
+                  </p>
+                )}
+              </motion.div>
+            )}
+
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
                 <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
                   <BrainCircuit className="h-6 w-6 text-purple-400" />
-                  <h3 className="text-xl font-bold">M.A.I.A Insights</h3>
+                  <h3 className="text-xl font-bold">Insights do Banco</h3>
                 </div>
                 <div className="space-y-4">
                   {loading ? (
@@ -254,13 +317,13 @@ export default function RelatorioPage() {
                       const percentual = Math.round((vend.realizado / vend.meta) * 100) || 0;
                       const corBarra =
                         vend.status === "acima"
-                          ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                          ? "bg-purple-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                           : vend.status === "abaixo"
                             ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
                             : "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]";
                       const corTexto =
                         vend.status === "acima"
-                          ? "text-emerald-400"
+                          ? "text-purple-400"
                           : vend.status === "abaixo"
                             ? "text-red-400"
                             : "text-blue-400";

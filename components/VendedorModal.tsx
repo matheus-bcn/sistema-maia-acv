@@ -52,7 +52,7 @@ export function VendedorModal({ isOpen, onClose, sellerToEdit, onSuccess }: Vend
       case "Intermediário":
         return "bg-yellow-500 text-black border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
       case "Pleno":
-        return "bg-emerald-500 text-black border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]";
+        return "bg-purple-500 text-black border-purple-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]";
       default:
         return "bg-white text-black border-white";
     }

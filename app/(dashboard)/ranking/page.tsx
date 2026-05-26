@@ -216,7 +216,7 @@ export default function RankingPage() {
                           {r.seller.name}
                         </p>
                         <p className="text-xs text-neutral-400">{r.salesCount} Vendas</p>
-                        <p className="text-sm font-semibold text-emerald-400 mt-1">
+                        <p className="text-sm font-semibold text-purple-400 mt-1">
                           R$ {r.totalSales.toLocaleString("pt-BR")}
                         </p>
                       </div>
@@ -254,7 +254,7 @@ export default function RankingPage() {
                           </p>
                         </div>
                       </div>
-                      <TrendingUp className="h-4 w-4 text-emerald-400" />
+                      <TrendingUp className="h-4 w-4 text-purple-400" />
                     </div>
                   ))
                 ) : (

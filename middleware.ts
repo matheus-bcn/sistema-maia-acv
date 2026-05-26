@@ -2,12 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
-  // 1. Cria a resposta padrão
   let supabaseResponse = NextResponse.next({
     request,
   })
 
-  // 2. Inicializa o cliente Supabase de forma totalmente segura para a Vercel
+  // Inicializa o cliente Supabase de forma totalmente segura para o Edge
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,14 +16,12 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // CORREÇÃO CRÍTICA: No 'request' passamos apenas name e value (sem as options que quebram o Edge)
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           
           supabaseResponse = NextResponse.next({
             request,
           })
           
-          // No 'response' sim, passamos as opções completas de segurança
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -33,29 +30,40 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 3. Valida a sessão do utilizador
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
     const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+    
+    // Feature: Respeita a variável de ambiente para permitir modo demonstração/dev
+    const requireAuth = process.env.NEXT_PUBLIC_REQUIRE_AUTH === 'true'
 
-    // REGRA 1: Se não está logado e não está no login -> Vai para o Login
+    // Se a autenticação não for exigida pelo sistema, libera todas as rotas
+    if (!requireAuth) {
+      return supabaseResponse
+    }
+
+    // REGRA 1: Sem sessão e fora do login -> Redireciona com memória de rota (Deep Linking)
     if (!user && !isLoginPage) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
+      // Salva a rota que o usuário tentou acessar
+      url.searchParams.set('next', request.nextUrl.pathname)
       return NextResponse.redirect(url)
     }
 
-    // REGRA 2: Se já está logado e tenta ir ao login -> Vai para o Dashboard
+    // REGRA 2: Com sessão e na tela de login -> Vai para o Dashboard ou recupera a rota salva
     if (user && isLoginPage) {
       const url = request.nextUrl.clone()
-      url.pathname = '/'
+      const nextUrl = request.nextUrl.searchParams.get('next')
+      
+      url.pathname = nextUrl || '/'
+      url.searchParams.delete('next')
       return NextResponse.redirect(url)
     }
   } catch (e) {
-    // Evita que falhas temporárias de rede quebrem o carregamento da página
     console.error("Erro crítico de validação no middleware:", e)
   }
 
@@ -64,7 +72,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Monitoriza todas as rotas, exceto ficheiros estáticos e imagens comuns
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

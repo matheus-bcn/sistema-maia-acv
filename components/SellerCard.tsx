@@ -37,7 +37,7 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete }: SellerC
   } else if (category === "Intermediário") {
     categoryColor = "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
   } else if (category === "Pleno" || category === "Vendedor Pleno") {
-    categoryColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+    categoryColor = "bg-purple-500/10 text-purple-400 border-purple-500/30";
   }
 
   return (
@@ -107,7 +107,7 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete }: SellerC
         <div>
           <h3 className="text-lg font-bold flex items-center gap-2">
             {seller.name}
-            {seller.is_admin && <ShieldCheck className="h-4 w-4 text-emerald-400" />}
+            {seller.is_admin && <ShieldCheck className="h-4 w-4 text-purple-400" />}
           </h3>
           
           <div className="flex flex-wrap gap-2 mt-2">
@@ -120,7 +120,7 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete }: SellerC
             <span
               className={`inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                 seller.status === "Ativo"
-                  ? "bg-emerald-400/10 text-emerald-400 border border-emerald-400/20"
+                  ? "bg-purple-400/10 text-purple-400 border border-purple-400/20"
                   : "bg-red-400/10 text-red-400 border border-red-400/20"
               }`}
             >
@@ -149,7 +149,7 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete }: SellerC
         className={`w-full mt-6 py-2 text-sm font-semibold rounded flex items-center justify-center gap-2 transition-colors ${
           seller.status === "Ativo"
             ? "bg-white/5 hover:bg-red-500/20 hover:text-red-400"
-            : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+            : "bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
         }`}
       >
         {seller.status === "Ativo" ? (<><UserX className="h-4 w-4" /> Desativar</>) : ("Reativar")}

@@ -1,30 +1,39 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Timer } from "lucide-react";
 
 export function ContagemFechamento() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { diasRestantes, pctPassado } = useMemo(() => {
+    if (!mounted) return { diasRestantes: 0, pctPassado: 0 };
+    
     const hoje = new Date();
     const ano = hoje.getFullYear();
     const mes = hoje.getMonth();
     
-    // Calcula o total de dias do mês e o dia atual
     const totalDiasMes = new Date(ano, mes + 1, 0).getDate();
     const diaAtual = hoje.getDate();
     
-    const restante = totalDiasMes - diaAtual;
-    const pct = (diaAtual / totalDiasMes) * 100;
-    
-    return { diasRestantes: restante, pctPassado: pct };
-  }, []);
+    return { 
+      diasRestantes: totalDiasMes - diaAtual, 
+      pctPassado: (diaAtual / totalDiasMes) * 100 
+    };
+  }, [mounted]);
+
+  if (!mounted) return <div className="glass-card min-h-[114px] rounded-xl border border-white/5 bg-white/[0.02] p-6 animate-pulse" />;
 
   return (
     <div className="glass-card relative overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-6 flex items-center justify-between h-full min-h-[114px]">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <Timer className="h-4 w-4 text-emerald-400" />
+          <Timer className="h-4 w-4 text-purple-400" />
           <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
             Fechamento do Mês
           </span>
@@ -40,20 +49,11 @@ export function ContagemFechamento() {
         </div>
       </div>
       
-      {/* Círculo de progresso na paleta correta da página */}
       <div className="relative h-16 w-16">
         <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
-          <circle
-            className="text-neutral-800"
-            cx="18"
-            cy="18"
-            r="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3.5"
-          />
+          <circle className="text-neutral-800" cx="18" cy="18" r="16" fill="none" stroke="currentColor" strokeWidth="3.5" />
           <motion.circle
-            className="text-emerald-400"
+            className="text-purple-400"
             cx="18"
             cy="18"
             r="16"

@@ -366,19 +366,19 @@ export default function HistoricoPage() {
                         <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-sm tracking-wider ${
                           (venda as any).channel === "atendimento" 
                             ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" 
-                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
                         }`}>
                           {(venda as any).channel ?? "Comercial"}
                         </span>
                       </td>
 
-                      <td className="px-6 py-4 font-black text-emerald-400 text-right tracking-tight">
+                      <td className="px-6 py-4 font-black text-purple-400 text-right tracking-tight">
                         R$ {Number(venda.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-sm tracking-wider ${
                           (venda.status as string) === "Aprovado" || (venda.status as string) === "Concluída"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" 
                             : (venda.status as string) === "Cancelado"
                             ? "bg-red-500/10 text-red-400 border border-red-500/20"
                             : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"

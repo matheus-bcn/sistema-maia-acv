@@ -12,29 +12,23 @@ export async function createCalendarEventAction(input: {
 }) {
   const supabase = await createClient();
 
-  // P1 — Validação de segurança rigorosa na Server Action (Evita bypass de API)
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Acesso negado: Usuário não autenticado." };
-  }
+  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
-  // P2 — Inserção real no banco de dados (CRUD de eventos do calendário)
+  // Correção de Arquitetura: Conversão para o formato DATE (YYYY-MM-DD) do PostgreSQL
+  const formattedDate = `${input.year}-${String(input.month).padStart(2, '0')}-${String(input.event_day).padStart(2, '0')}`;
+
   const { data, error } = await supabase
     .from("calendar_events")
     .insert({
       title: input.title,
       event_type: input.event_type,
-      event_day: input.event_day,
-      month: input.month,
-      year: input.year,
+      event_date: formattedDate,
     })
     .select()
     .single();
 
-  if (!error) {
-    // P1 — Expurgar o cache de toda a árvore do dashboard para sincronização visual imediata
-    revalidatePath("/dashboard", "layout");
-  }
+  if (!error) revalidatePath("/dashboard", "layout");
 
   return { data, error: error?.message ?? null };
 }
@@ -42,21 +36,12 @@ export async function createCalendarEventAction(input: {
 export async function deleteCalendarEventAction(id: string) {
   const supabase = await createClient();
 
-  // P1 — Validação de segurança rigorosa na Server Action
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Acesso negado: Usuário não autenticado." };
-  }
+  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
-  // P2 — Remoção física/lógica do evento (CRUD de eventos do calendário)
-  const { error } = await supabase
-    .from("calendar_events")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("calendar_events").delete().eq("id", id);
 
-  if (!error) {
-    revalidatePath("/dashboard", "layout");
-  }
+  if (!error) revalidatePath("/dashboard", "layout");
 
   return { error: error?.message ?? null };
 }

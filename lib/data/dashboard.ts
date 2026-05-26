@@ -5,9 +5,7 @@ import { getApprovedSalesTotalsForMonth } from "@/lib/data/sales";
 import { getSellerRankings } from "@/lib/data/sellers";
 
 export async function getDashboardStats(
-  supabase: SupabaseClient,
-  startDate?: string,
-  endDate?: string
+  supabase: SupabaseClient, startDate?: string, endDate?: string
 ): Promise<DashboardStats> {
   const [totals, metaGlobal, rankings] = await Promise.all([
     getApprovedSalesTotalsForMonth(supabase, startDate, endDate),
@@ -15,21 +13,10 @@ export async function getDashboardStats(
     getSellerRankings(supabase, startDate, endDate),
   ]);
 
-  const top = rankings[0] ?? null;
-
-  return {
-    totalFaturado: totals.total,
-    qtdVendas: totals.count,
-    metaGlobal,
-    topSeller: top,
-  };
+  return { totalFaturado: totals.total, qtdVendas: totals.count, metaGlobal, topSeller: rankings[0] ?? null };
 }
 
-export function buildMaiaBriefing(
-  total: number,
-  meta: number
-): string {
-  const porcentagem =
-    meta > 0 ? ((total / meta) * 100).toFixed(1) : "0";
+export function buildMaiaBriefing(total: number, meta: number): string {
+  const porcentagem = meta > 0 ? ((total / meta) * 100).toFixed(1) : "0";
   return `Tudo sincronizado! Faturamos R$ ${total.toLocaleString("pt-BR")}. Já alcançamos ${porcentagem}% da nossa meta global.`;
 }

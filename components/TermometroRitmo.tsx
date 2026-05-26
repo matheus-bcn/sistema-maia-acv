@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react";
 import { Target, Zap } from "lucide-react"
 
 interface TermometroRitmoProps {
@@ -8,18 +9,31 @@ interface TermometroRitmoProps {
 }
 
 export function TermometroRitmo({ meta, faturado }: TermometroRitmoProps) {
-  const hoje = new Date().getDate()
-  const ultimoDia = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  const diasRestantes = ultimoDia - hoje
+  const [mounted, setMounted] = useState(false);
+  const [calculos, setCalculos] = useState({ projecao: 0, porcentagem: 0, atingimentoProjecao: 0 });
 
-  const projecao =
-    hoje > 0 ? faturado + (faturado / hoje) * diasRestantes : faturado
-  const porcentagem = meta > 0 ? Math.min((faturado / meta) * 100, 100) : 0
-  const atingimentoProjecao = meta > 0 ? (projecao / meta) * 100 : 0
+  useEffect(() => {
+    const hoje = new Date().getDate();
+    const ultimoDia = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+    const diasRestantes = ultimoDia - hoje;
+
+    const projecao = hoje > 0 ? faturado + (faturado / hoje) * diasRestantes : faturado;
+    const porcentagem = meta > 0 ? Math.min((faturado / meta) * 100, 100) : 0;
+    const atingimentoProjecao = meta > 0 ? (projecao / meta) * 100 : 0;
+
+    setCalculos({ projecao, porcentagem, atingimentoProjecao });
+    setMounted(true);
+  }, [faturado, meta]);
+
+  if (!mounted) {
+    return <div className="glass-card h-full min-h-[340px] rounded-xl border border-white/5 bg-white/[0.02] animate-pulse" />;
+  }
+
+  const { projecao, porcentagem, atingimentoProjecao } = calculos;
 
   return (
     <div className="glass-card flex h-full flex-col justify-between rounded-xl p-6 relative overflow-hidden">
-      <div className="absolute -right-8 top-6 rotate-45 bg-emerald-500 px-10 py-1 text-[10px] font-black uppercase text-black shadow-lg">
+      <div className="absolute -right-8 top-6 rotate-45 bg-purple-500 px-10 py-1 text-[10px] font-black uppercase text-black shadow-lg">
         IA Predictor
       </div>
 
@@ -43,7 +57,7 @@ export function TermometroRitmo({ meta, faturado }: TermometroRitmoProps) {
             R$ {projecao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
           </p>
           <p
-            className={`text-xs font-bold mt-1 ${atingimentoProjecao >= 100 ? "text-emerald-400" : "text-red-400"}`}
+            className={`text-xs font-bold mt-1 ${atingimentoProjecao >= 100 ? "text-purple-400" : "text-red-400"}`}
           >
             {atingimentoProjecao >= 100
               ? "✓ Meta será superada"
