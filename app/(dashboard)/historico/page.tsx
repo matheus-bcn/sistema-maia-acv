@@ -13,11 +13,11 @@ import {
   FileSpreadsheet,
   X,
   Trash2,
-  Tag
+  Trash
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { listSales } from "@/lib/data/sales";
-import { deleteSaleAction } from "@/lib/actions/sales"; // Importação da Action de exclusão
+import { deleteSaleAction, deleteAllSalesAction } from "@/lib/actions/sales"; 
 import type { Sale } from "@/types";
 
 const SkeletonRow = () => (
@@ -40,8 +40,10 @@ export default function HistoricoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ESTADO PARA O MODAL DE CONFIRMAÇÃO CUSTOMIZADO
+  // Estados dos Modais
   const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   // Estados dos Dropdowns
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -79,7 +81,6 @@ export default function HistoricoPage() {
     carregarVendas();
   }, [carregarVendas]);
 
-  // Função que executa a exclusão definitiva após a confirmação no modal do tema
   const confirmDelete = async (id: string) => {
     try {
       const result = await deleteSaleAction(id);
@@ -92,11 +93,27 @@ export default function HistoricoPage() {
       console.error("Falha ao deletar:", err);
       alert("Não foi possível deletar a venda selecionada.");
     } finally {
-      setSaleToDelete(null); // Fecha o modal customizado
+      setSaleToDelete(null);
     }
   };
 
-  // Filtro Combinado: Busca em texto + Status
+  const confirmDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      const result = await deleteAllSalesAction(periodo.inicio, periodo.fim);
+      if (result?.error) {
+        alert(`Erro ao limpar mês: ${result.error}`);
+      } else {
+        setVendas([]);
+      }
+    } catch (err) {
+      alert("Falha de conexão ao limpar o histórico.");
+    } finally {
+      setIsDeletingAll(false);
+      setIsDeleteAllModalOpen(false);
+    }
+  };
+
   const vendasFiltradas = vendas.filter((v) => {
     const nome = v.seller?.name?.toLowerCase() ?? "";
     const idStr = v.id.toLowerCase();
@@ -143,15 +160,28 @@ export default function HistoricoPage() {
           </h2>
           <p className="text-neutral-400 mt-1">Auditoria e registro de faturamento da equipe</p>
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={loading || vendasFiltradas.length === 0}
-          className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ArrowDownToLine className="h-4 w-4" />
-          Exportar CSV
-        </button>
+        
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsDeleteAllModalOpen(true)}
+            disabled={loading || vendas.length === 0}
+            className="flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Trash className="h-4 w-4" />
+            Limpar Mês
+          </button>
+          
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={loading || vendasFiltradas.length === 0}
+            className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ArrowDownToLine className="h-4 w-4" />
+            Exportar CSV
+          </button>
+        </div>
       </header>
 
       <div className="glass-card rounded-xl p-4 mb-6 border border-white/5 flex flex-wrap gap-4 items-center bg-white/[0.02] relative z-20">
@@ -166,7 +196,6 @@ export default function HistoricoPage() {
           />
         </div>
         
-        {/* Dropdown: Filtrar Data */}
         <div className="relative">
           <button 
             type="button" 
@@ -219,7 +248,6 @@ export default function HistoricoPage() {
           </AnimatePresence>
         </div>
 
-        {/* Dropdown: Mais Filtros (Status) */}
         <div className="relative">
           <button 
             type="button" 
@@ -351,7 +379,6 @@ export default function HistoricoPage() {
                         {venda.id.slice(0, 13)}...
                       </td>
                       <td className="px-6 py-4 text-neutral-300 font-medium">
-                        {/* Ajuste de tipo com cast seguro para ler a data da venda */}
                         {new Date((venda as any).sale_date || venda.created_at).toLocaleDateString("pt-BR", {
                           day: "2-digit",
                           month: "2-digit",
@@ -390,7 +417,7 @@ export default function HistoricoPage() {
                       <td className="px-6 py-4 text-center">
                         <button
                           type="button"
-                          onClick={() => setSaleToDelete(venda.id)} // Aciona o modal customizado em vez do confirm do navegador
+                          onClick={() => setSaleToDelete(venda.id)} 
                           className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all"
                           title="Excluir Venda"
                         >
@@ -406,7 +433,48 @@ export default function HistoricoPage() {
         </div>
       </div>
 
-      {/* NOVO: MODAL DE CONFIRMAÇÃO CUSTOMIZADO COM LAYOUT DO TEMA */}
+      <AnimatePresence>
+        {isDeleteAllModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-card w-full max-w-sm rounded-2xl p-6 border border-red-500/30 bg-neutral-900 text-white space-y-4 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 text-red-400">
+                <AlertCircle className="h-6 w-6 flex-shrink-0" />
+                <h3 className="text-lg font-black text-white">Limpar Mês Inteiro?</h3>
+              </div>
+              
+              <p className="text-sm text-neutral-400 leading-relaxed">
+                Tem certeza? Você está prestes a apagar <strong>permanentemente</strong> todas as {vendas.length} vendas cadastradas entre <span className="text-white">{periodo.inicio.split('-').reverse().join('/')}</span> e <span className="text-white">{periodo.fim.split('-').reverse().join('/')}</span>.
+              </p>
+              
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteAllModalOpen(false)}
+                  disabled={isDeletingAll}
+                  className="px-4 py-2 rounded-lg border border-white/10 text-sm font-semibold hover:bg-white/5 transition-colors text-neutral-300 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteAll}
+                  disabled={isDeletingAll}
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-bold text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isDeletingAll ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />} 
+                  {isDeletingAll ? "Excluindo..." : "Sim, apagar tudo"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {saleToDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">

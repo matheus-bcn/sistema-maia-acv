@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Target, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
+import { Trophy, Target, TrendingUp, AlertCircle, RefreshCw, X } from "lucide-react";
 import { BatalhaX1 } from "@/components/BatalhaX1";
 import { createClient } from "@/lib/supabase/client";
 import { getSellerRankings } from "@/lib/data/sellers";
@@ -13,10 +14,10 @@ const podiumVariants = {
   show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 15 } },
 };
 
-const PODIUM_HEIGHT = ["h-48", "h-64", "h-40"] as const;
+// Alturas matemáticas mapeadas corretamente para o Pódio
+const PODIUM_HEIGHT = ["h-64", "h-48", "h-40"] as const;
 const PODIUM_ORDER = [1, 0, 2];
 
-// Skeleton do Pódio para evitar Layout Shift (P1)
 const SkeletonPodium = () => (
   <div className="glass-card rounded-xl p-8 lg:col-span-2 flex flex-col justify-end min-h-[450px] relative animate-pulse border border-white/5 bg-white/[0.02]">
     <div className="flex justify-center items-end gap-4 sm:gap-8 h-full pb-4">
@@ -35,7 +36,6 @@ const SkeletonPodium = () => (
   </div>
 );
 
-// Skeleton da Lista de Perseguição (P1)
 const SkeletonList = () => (
   <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02] animate-pulse">
     <div className="h-6 w-1/2 bg-white/10 rounded mb-6" />
@@ -56,14 +56,19 @@ const SkeletonList = () => (
   </div>
 );
 
-export default function RankingPage() {
+// O componente interno que gerencia a lógica
+function RankingContent() {
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Variável que checa se a URL tem ?batalha=true
+  const isBatalhaAtiva = searchParams.get("batalha") === "true";
   
   const [rankings, setRankings] = useState<SellerRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // P0 — Filtro temporal (padrão: Mês Corrente)
   const [periodo, setPeriodo] = useState(() => {
     const now = new Date();
     return {
@@ -76,12 +81,10 @@ export default function RankingPage() {
     setLoading(true);
     setError(null);
     try {
-      // Passando as datas para garantir que o ranking reflita o período selecionado (P0)
       const data = await getSellerRankings(supabase, periodo.inicio, periodo.fim);
       setRankings(data);
     } catch (err) {
-      console.error("Erro ao carregar o ranking:", err);
-      setError("Não foi possível carregar o ranking de vendedores. Verifique sua conexão ou permissões.");
+      setError("Não foi possível carregar o ranking de vendedores.");
     } finally {
       setLoading(false);
     }
@@ -105,7 +108,6 @@ export default function RankingPage() {
           <p className="text-neutral-400 mt-1">Os melhores performers do período selecionado</p>
         </div>
 
-        {/* P0 — Controle de período selecionável */}
         <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-3 py-1.5 rounded-md backdrop-blur-md w-max">
           <span className="text-xs text-neutral-400 font-medium uppercase">Período:</span>
           <input 
@@ -124,9 +126,27 @@ export default function RankingPage() {
         </div>
       </header>
 
-      <div className="mb-10">
-        <BatalhaX1 rankings={rankings} />
-      </div>
+      {/* RENDERIZAÇÃO CONDICIONAL DA BATALHA X1 */}
+      <AnimatePresence>
+        {isBatalhaAtiva && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-10 relative"
+          >
+            {/* Botão de Fechar a Batalha e voltar pro ranking normal */}
+            <button 
+              onClick={() => router.push("/ranking")}
+              className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white transition-colors"
+              title="Encerrar Batalha"
+            >
+              <X size={18} />
+            </button>
+            <BatalhaX1 rankings={rankings} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {error ? (
@@ -266,5 +286,18 @@ export default function RankingPage() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// OBRIGATÓRIO: Embrulhar em Suspense para evitar quebra no Build de Produção
+export default function RankingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center text-white/50 animate-pulse">
+        Montando Ranking...
+      </div>
+    }>
+      <RankingContent />
+    </Suspense>
   );
 }

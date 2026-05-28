@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { BrainCircuit, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,17 +44,25 @@ export default function LoginPage() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         onSubmit={handleLogin}
-        className="glass-card w-full max-w-md rounded-2xl p-8 border border-white/10"
+        className="glass-card w-full max-w-md rounded-2xl p-8 border border-white/10 bg-neutral-900/50"
       >
         <motion.div
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           className="mb-8 flex flex-col items-center gap-3"
         >
-          <div className="rounded-xl bg-white p-3">
-            <BrainCircuit className="h-8 w-8 text-black" />
+          {/* Logo Customizada */}
+          <div className="relative w-20 h-20 mb-2">
+            <Image 
+              src="/logo.png" 
+              alt="Logo A.C.V" 
+              fill 
+              className="object-contain"
+              priority 
+            />
           </div>
-          <h1 className="text-2xl font-black tracking-tight">MAIA — ACV</h1>
+          
+          <h1 className="text-2xl font-black tracking-tight">A.C.V</h1>
           <p className="text-sm text-neutral-400 text-center">
             Acesso ao painel comercial
           </p>
@@ -73,7 +82,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm outline-none focus:border-white/30"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm outline-none focus:border-white/30 transition-all"
             />
           </motion.div>
           <motion.div
@@ -89,7 +98,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm outline-none focus:border-white/30"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm outline-none focus:border-white/30 transition-all"
             />
           </motion.div>
         </div>
@@ -101,7 +110,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-white py-3 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-white py-3 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50 transition-all"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

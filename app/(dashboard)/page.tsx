@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getDashboardStats, buildMaiaBriefing } from "@/lib/data/dashboard";
 import { getMonthlyChartData } from "@/lib/data/sales";
-import { obterBriefingIAAction } from "@/lib/actions/ai-actions"; // Nova importação
+import { obterBriefingIAAction } from "@/lib/actions/ai-actions"; 
 import { TermometroRitmo } from "@/components/TermometroRitmo";
 import { TermometroDiasUteis } from "@/components/TermometroDiasUteis";
 import { ContagemFechamento } from "@/components/ContagemFechamento";
@@ -35,6 +35,13 @@ interface CanaisData {
   pctComercial: number;
   pctAtendimento: number;
   dominante: string;
+}
+
+// Interface estruturada para o payload da Inteligência Artificial
+interface MaiaInsight {
+  titulo: string;
+  briefing: string;
+  acao: string;
 }
 
 const containerVariants: Variants = {
@@ -72,8 +79,10 @@ export default function Home() {
   const [vendedorSelecionado, setVendedorSelecionado] = useState<SellerRanking | null>(null);
   const [data, setData] = useState<DashboardData | null>(null);
   const [canais, setCanais] = useState<CanaisData>({ comercial: 0, atendimento: 0, pctComercial: 0, pctAtendimento: 0, dominante: "Empate" });
+  
   const [maiaAtiva, setMaiaAtiva] = useState(false);
-  const [mensagemIA, setMensagemIA] = useState("");
+  // Estado tipado para o novo formato de payload da IA
+  const [mensagemIA, setMensagemIA] = useState<MaiaInsight | null>(null);
 
   const initialDates = getLocalFirstAndLastDay();
   const [periodo, setPeriodo] = useState<{ inicio: string; fim: string }>({
@@ -141,13 +150,51 @@ export default function Home() {
         dominante: totaisCanais.c > totaisCanais.a ? "Comercial" : totaisCanais.a > totaisCanais.c ? "Atendimento" : "Empate"
       });
 
-      // INTEGRAÇÃO DA IA (Erro corrigido aqui)
-      const briefingIA = await obterBriefingIAAction(stats);
+      // =================================================================
+      // INTEGRAÇÃO DA IA COM CACHE DE 2 HORAS (PERFORMANCE BOOST)
+      // =================================================================
+      const CACHE_KEY = "maia_insight_cache";
+      const cachedIA = localStorage.getItem(CACHE_KEY);
+      let shouldFetchAI = true;
 
-      if (briefingIA.success) {
-        setMensagemIA(briefingIA.briefing || "Análise concluída com sucesso.");
-      } else {
-        setMensagemIA(buildMaiaBriefing(stats.totalFaturado, stats.metaGlobal));
+      if (cachedIA) {
+        const { timestamp, data: cachedData } = JSON.parse(cachedIA);
+        // Calcula quantas horas se passaram desde o último insight
+        const hoursPassed = (Date.now() - timestamp) / (1000 * 60 * 60);
+        
+        // Se passou MENOS de 2 horas, usa o insight guardado no Cache do Navegador
+        if (hoursPassed < 2) {
+          setMensagemIA(cachedData);
+          shouldFetchAI = false;
+        }
+      }
+
+      // Só bate na API do Gemini se o cache expirou (passou de 2h) ou se for a primeira vez
+      if (shouldFetchAI) {
+        const briefingIA = await obterBriefingIAAction(stats);
+
+        if (briefingIA.success) {
+          const aiPayload: MaiaInsight = {
+            titulo: briefingIA.titulo,
+            briefing: briefingIA.briefing,
+            acao: briefingIA.acao
+          };
+          
+          setMensagemIA(aiPayload);
+          
+          // Grava no Local Storage com a data de agora para segurar as próximas requisições
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ 
+            timestamp: Date.now(), 
+            data: aiPayload 
+          }));
+        } else {
+          // Fallback seguro caso a IA falhe por instabilidade na rede
+          setMensagemIA({
+            titulo: "Análise Estática",
+            briefing: buildMaiaBriefing(stats.totalFaturado, stats.metaGlobal),
+            acao: "Verifique o ranking e atualize suas vendas."
+          });
+        }
       }
       
       setLoading(false);
@@ -161,11 +208,20 @@ export default function Home() {
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
   const handleNovaVendaSuccess = (valorVenda: number) => {
+    // Override temporário do Cache para comemorar a venda imediatamente
     if (valorVenda >= 5000) {
       dispararGritoDeGol();
-      setMensagemIA(`🚀 GOLAÇO! Uma venda de R$ ${valorVenda.toLocaleString('pt-BR')} foi registrada.`);
+      setMensagemIA({
+        titulo: "🚀 GOLAÇO!",
+        briefing: `Uma venda estrondosa de R$ ${valorVenda.toLocaleString('pt-BR')} foi registrada no sistema.`,
+        acao: "Aproveite a adrenalina e feche mais um negócio hoje!"
+      });
     } else {
-      setMensagemIA(`✅ Venda de R$ ${valorVenda.toLocaleString('pt-BR')} registrada com sucesso.`);
+      setMensagemIA({
+        titulo: "✅ Venda Confirmada",
+        briefing: `Negócio de R$ ${valorVenda.toLocaleString('pt-BR')} validado e adicionado à meta.`,
+        acao: "Atualize o pipeline e busque o próximo cliente."
+      });
     }
     setMaiaAtiva(true);
     carregarDados();
@@ -392,7 +448,8 @@ export default function Home() {
       </AnimatePresence>
 
       <NovaVendaModal isOpen={isNovaVendaOpen} onClose={() => setIsNovaVendaOpen(false)} onSuccess={handleNovaVendaSuccess} />
-      <MaiaBriefing show={maiaAtiva} message={mensagemIA} onClose={() => setMaiaAtiva(false)} />
+      
+      <MaiaBriefing show={maiaAtiva} message={mensagemIA as any} onClose={() => setMaiaAtiva(false)} />
     </>
   );
 }

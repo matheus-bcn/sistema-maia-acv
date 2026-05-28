@@ -1,11 +1,15 @@
 "use client"
 
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { BrainCircuit, X } from "lucide-react";
+import { BrainCircuit, X, Zap } from "lucide-react";
 
 interface MaiaBriefingProps {
   show: boolean;
-  message: string;
+  message: {
+    titulo: string;
+    briefing: string;
+    acao: string;
+  } | null;
   onClose: () => void;
 }
 
@@ -15,7 +19,6 @@ const cardVariants: Variants = {
     opacity: 1, 
     y: 0, 
     scale: 1,
-    // FÍSICA APPLE/SPRING: Deixa a entrada orgânica e "elástica"
     transition: { type: "spring", stiffness: 400, damping: 25 } 
   },
   exit: { 
@@ -26,14 +29,9 @@ const cardVariants: Variants = {
   },
 };
 
-const TEXTS = {
-  intelligence: "M.A.I.A Intelligence",
-  title: "Insight em Tempo Real",
-  status: "Análise Concluída",
-  close: "Fechar",
-};
-
 export function MaiaBriefing({ show, message, onClose }: MaiaBriefingProps) {
+  if (!message) return null;
+
   return (
     <AnimatePresence>
       {show && (
@@ -42,43 +40,53 @@ export function MaiaBriefing({ show, message, onClose }: MaiaBriefingProps) {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="fixed bottom-10 right-10 z-[100] w-85 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+          className="fixed bottom-10 right-10 z-[100] w-96 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
         >
-          <div className="bg-neutral-900/80 backdrop-blur-2xl border border-primary/30 rounded-3xl p-5 relative overflow-hidden group">
+          <div className="bg-neutral-900/90 backdrop-blur-2xl border border-primary/30 rounded-3xl p-6 relative overflow-hidden group">
             
-            {/* Efeito Hover do Pop-up (Aumenta o brilho roxo) */}
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-            <div className="flex items-center justify-between mb-3 relative z-10">
-              <div className="flex items-center gap-2">
-                <div className="bg-primary p-1.5 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                  <BrainCircuit className="h-4 w-4 text-white" />
+            <div className="flex items-start justify-between mb-4 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary p-2 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                  <BrainCircuit className="h-5 w-5 text-white"/>
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                  {TEXTS.intelligence}
-                </span>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary block">
+                    M.A.I.A Intelligence
+                  </span>
+                  <span className="text-sm font-bold text-white leading-none mt-1 block">
+                    {message.titulo}
+                  </span>
+                </div>
               </div>
               <button 
                 onClick={onClose} 
-                aria-label={TEXTS.close}
                 className="p-1 hover:bg-white/10 rounded-full transition-colors group/btn active:scale-90"
               >
-                <X className="h-4 w-4 text-neutral-400 group-hover/btn:text-white" />
+                <X className="h-4 w-4 text-neutral-400 group-hover/btn:text-white"/>
               </button>
             </div>
             
-            <div className="space-y-1 relative z-10">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                {TEXTS.title}
-              </h4>
-              <p className="text-xs text-neutral-300 leading-relaxed font-medium">
-                {message}
+            <div className="space-y-4 relative z-10">
+              <p className="text-sm text-neutral-300 leading-relaxed font-medium">
+                {message.briefing}
               </p>
+
+              <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex gap-3 items-start">
+                <Zap className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0"/>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  <strong className="text-white block mb-0.5">Ação Sugerida:</strong>
+                  {message.acao}
+                </p>
+              </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-1 relative z-10">
+            <div className="mt-5 flex items-center gap-2 relative z-10">
               <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></div>
-              <span className="text-[8px] font-bold text-primary/80 uppercase tracking-wider">{TEXTS.status}</span>
+              <span className="text-[9px] font-bold text-primary/80 uppercase tracking-wider">
+                Análise em tempo real
+              </span>
             </div>
           </div>
         </motion.div>

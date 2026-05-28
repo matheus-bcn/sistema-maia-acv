@@ -15,7 +15,6 @@ export async function createSaleAction(input: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
-  // CORREÇÃO: Garantindo que sale_date e channel nunca sejam undefined (exigência do TypeScript)
   const result = await createSale(supabase, {
     ...input,
     sale_date: input.sale_date || new Date().toISOString(),
@@ -42,7 +41,28 @@ export async function deleteSaleAction(id: string) {
 }
 
 // ========================================================
-// MOTOR DE IMPORTAÇÃO AUTOMÁTICA NATIVA (ZERO DEPENDÊNCIAS)
+// AÇÃO: EXCLUSÃO EM MASSA (LIMPAR MÊS)
+// ========================================================
+export async function deleteAllSalesAction(startDate: string, endDate: string) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
+
+  const { error } = await supabase
+    .from("sales")
+    .delete()
+    .gte("sale_date", `${startDate}T00:00:00`)
+    .lte("sale_date", `${endDate}T23:59:59`);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+// ========================================================
+// MOTOR DE IMPORTAÇÃO AUTOMÁTICA NATIVA (SISTEMA DE SCRAPING)
 // ========================================================
 export async function importPdvReportAction(formData: FormData, sellerId: string) {
   const supabase = await createClient();
@@ -64,32 +84,34 @@ export async function importPdvReportAction(formData: FormData, sellerId: string
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line) continue;
+      
+      // Filtro Ouro: Se a linha estiver vazia ou NÃO começar com um dígito (PV), pule-a.
+      // Isso elimina cabeçalhos como "Data:", "Vendas:", "Total:", etc.
+      if (!line || !/^\d/.test(line)) continue;
 
-      const columns = line.split(",");
-      if (columns.length >= 4) {
-        const dateStr = columns.find(col => /(\d{2})\/(\d{2})\/(\d{4})/.test(col));
-        const pdvStr = columns.find(col => /\b(113\d{3})\b/.test(col));
+      // 1. Extrair a Data (Formato DD/MM/AAAA)
+      const dateMatch = line.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      
+      // 2. Extrair o Valor Financeiro (Busca a última sequência numérica no final da string)
+      const amountMatch = line.match(/\s([\d.,]+)\s*$/);
 
-        if (dateStr && pdvStr) {
-          const dateMatch = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-          if (dateMatch) {
-            const sale_date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
-            
-            // Otimização: Regex mais robusto para extrair apenas o valor financeiro limpo
-            const rawAmount = columns[columns.length - 1].replace(/[^\d,-]/g, "");
-            const amount = parseFloat(rawAmount.replace(",", "."));
+      if (dateMatch && amountMatch) {
+        const sale_date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+        
+        // 3. Limpeza Matemática (Transforma "2.475,00" em 2475.00)
+        const rawAmount = amountMatch[1];
+        const cleanAmount = rawAmount.replace(/\./g, "").replace(",", ".");
+        const amount = parseFloat(cleanAmount);
 
-            if (!isNaN(amount) && amount > 0) {
-              rows.push({ seller_id: sellerId, amount, sale_date, channel: "atendimento" });
-            }
-          }
+        // Apenas lança se for um valor real maior que zero
+        if (!isNaN(amount) && amount > 0) {
+          rows.push({ seller_id: sellerId, amount, sale_date, channel: "atendimento" });
         }
       }
     }
 
     if (rows.length === 0) {
-      return { error: "Nenhuma linha válida encontrada. O formato deve conter Data (DD/MM/AAAA) e PDV." };
+      return { error: "Nenhuma linha válida encontrada. Verifique se o arquivo possui as transações com valores reais." };
     }
 
     const result = await importSalesFromRows(supabase, rows);
