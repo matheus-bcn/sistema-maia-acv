@@ -32,6 +32,7 @@ export interface Goal {
   type: "equipe" | "individual";
   target_value: number;
   seller_id: string | null;
+  month_year: string | null;
   created_at: string;
 }
 

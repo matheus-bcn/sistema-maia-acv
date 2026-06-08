@@ -8,6 +8,7 @@ import { TermometroDiasUteis } from "@/components/TermometroDiasUteis";
 import { TermometroRitmo } from "@/components/TermometroRitmo";
 import { GraficoComparativoDiario } from "@/components/GraficoComparativoDiario";
 import { getDailyComparisonData } from "@/lib/data/sales";
+import { getSellerGoal } from "@/lib/data/goals";
 
 function getInitialPeriodo() {
   const hoje = new Date();
@@ -72,17 +73,7 @@ export default function MeuPainelPage() {
       if (sellerData) {
         setVendedor(sellerData);
 
-        const { data: goalData } = await supabase
-          .from("goals")
-          .select("target_value")
-          .eq("type", "individual")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const meta = goalData?.target_value
-          ? Number(goalData.target_value)
-          : Number(sellerData.meta) || Number(sellerData.goal) || 25000;
+        const meta = await getSellerGoal(supabase, sellerData.id);
         setMetaIndividual(meta);
 
         // Vendas do período selecionado
