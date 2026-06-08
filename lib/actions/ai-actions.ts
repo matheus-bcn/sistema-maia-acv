@@ -147,6 +147,61 @@ Máximo 150 palavras. Tom: direto, analítico e motivador.`;
   }
 }
 
+export async function analisarClientesAction(dados: {
+  periodo: { inicio: string; fim: string };
+  totalClientes: number;
+  ticketMedioGeral: number;
+  vips: { nome: string; totalGasto: number; totalCompras: number; diasSemComprar: number }[];
+  dormentes: { nome: string; totalGasto: number; diasSemComprar: number }[];
+  novos: { nome: string; totalGasto: number; ticketMedio: number }[];
+}) {
+  if (!process.env.GROQ_API_KEY) {
+    return { success: false, error: "GROQ_API_KEY não configurada." };
+  }
+
+  try {
+    const d = dados;
+    const prompt = `Você é M.A.I.A, analista comercial e CRM especializado. Analise os dados de clientes e gere insights acionáveis para a equipe de vendas em português brasileiro.
+
+DADOS DO CRM — Período: ${d.periodo.inicio} a ${d.periodo.fim}
+- Total de clientes únicos: ${d.totalClientes}
+- Ticket médio geral: R$ ${d.ticketMedioGeral.toLocaleString("pt-BR")}
+
+CLIENTES VIP (top por valor):
+${d.vips.slice(0, 5).map((c) => `• ${c.nome}: R$ ${c.totalGasto.toLocaleString("pt-BR")} em ${c.totalCompras} compra(s) — ${c.diasSemComprar} dia(s) sem comprar`).join("\n") || "Nenhum"}
+
+CLIENTES DORMENTES (sem comprar há mais de 30 dias):
+${d.dormentes.slice(0, 5).map((c) => `• ${c.nome}: último gasto R$ ${c.totalGasto.toLocaleString("pt-BR")} — ${c.diasSemComprar} dias sem comprar`).join("\n") || "Nenhum"}
+
+NOVOS CLIENTES (primeira compra no período):
+${d.novos.slice(0, 5).map((c) => `• ${c.nome}: R$ ${c.totalGasto.toLocaleString("pt-BR")} (ticket médio R$ ${c.ticketMedio.toLocaleString("pt-BR")})`).join("\n") || "Nenhum"}
+
+Gere EXATAMENTE 4 insights acionáveis, retornando APENAS JSON válido:
+[
+  {"tipo":"retomar","titulo":"...","mensagem":"...","cliente":"...","acao":"..."},
+  {"tipo":"fidelizar","titulo":"...","mensagem":"...","cliente":"...","acao":"..."},
+  {"tipo":"vip","titulo":"...","mensagem":"...","cliente":"...","acao":"..."},
+  {"tipo":"oportunidade","titulo":"...","mensagem":"...","cliente":"...","acao":"..."}
+]
+Regras: titulo máx 6 palavras, mensagem 1-2 frases com dados reais, acao 1 frase imperativa específica. Sempre use nomes reais dos clientes quando disponíveis.`;
+
+    const completion = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.6,
+      max_tokens: 600,
+    });
+
+    const rawText = completion.choices[0]?.message?.content ?? "";
+    const cleanText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(cleanText);
+    return { success: true, insights: parsed as any[] };
+  } catch (error: any) {
+    console.error("Erro analisarClientesAction:", error?.message ?? error);
+    return { success: false, error: "Falha ao gerar insights de clientes." };
+  }
+}
+
 export async function analisarVendedorAction(dadosVendedor: {
   nome: string;
   periodo: { inicio: string; fim: string };

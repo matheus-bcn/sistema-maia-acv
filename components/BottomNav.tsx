@@ -18,8 +18,9 @@ const ADMIN_PRIMARY = [
 const ADMIN_MAIS = [
   { nome: "Calendário",   caminho: "/calendario",   icone: "line-md:calendar",            cor: "#2dd4bf" },
   { nome: "Premiações",   caminho: "/premiacoes",   icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
-  { nome: "Equipe",       caminho: "/equipe",        icone: "mdi:account-group",           cor: "#34d399" },
-  { nome: "Configuração", caminho: "/configuracao",  icone: "line-md:cog-loop",            cor: "#fb7185" },
+  { nome: "Clientes",     caminho: "/clientes",     icone: "mdi:account-multiple",        cor: "#2dd4bf" },
+  { nome: "Equipe",       caminho: "/equipe",       icone: "mdi:account-group",           cor: "#34d399" },
+  { nome: "Configuração", caminho: "/configuracao", icone: "line-md:cog-loop",            cor: "#fb7185" },
 ];
 
 const USER_TABS = [
@@ -74,7 +75,7 @@ export function BottomNav() {
             className="fixed bottom-20 left-3 right-3 z-50 md:hidden rounded-2xl overflow-hidden"
             style={{ background: "rgba(13,17,23,0.97)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <div className="p-2 grid grid-cols-4 gap-1">
+            <div className="p-2 grid grid-cols-5 gap-1">
               {ADMIN_MAIS.map((item) => {
                 const ativo = pathname === item.caminho;
                 return (

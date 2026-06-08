@@ -18,6 +18,7 @@ const SkeletonRow = () => (
     <td className="px-6 py-4"><div className="h-4 w-24 bg-white/10 rounded" /></td>
     <td className="px-6 py-4"><div className="h-4 w-32 bg-white/10 rounded" /></td>
     <td className="px-6 py-4 text-center"><div className="h-4 w-16 mx-auto bg-white/10 rounded" /></td>
+    <td className="px-6 py-4 text-center"><div className="h-4 w-16 mx-auto bg-white/10 rounded" /></td>
     <td className="px-6 py-4 flex justify-end"><div className="h-4 w-20 bg-white/10 rounded" /></td>
     <td className="px-6 py-4"><div className="h-6 w-16 mx-auto bg-white/10 rounded-full" /></td>
     <td className="px-6 py-4 text-center"><div className="h-4 w-6 mx-auto bg-white/10 rounded" /></td>
@@ -109,27 +110,31 @@ export default function HistoricoPage() {
   const vendasFiltradas = vendas.filter((v) => {
     const nome = v.seller?.name?.toLowerCase() ?? "";
     const idStr = v.id.toLowerCase();
+    const cliente = ((v as any).customer_name ?? "").toLowerCase();
+    const pdv = ((v as any).pdv_number ?? "").toLowerCase();
     const termo = busca.toLowerCase();
-    
-    const atendeBusca = nome.includes(termo) || idStr.includes(termo);
+
+    const atendeBusca = !termo || nome.includes(termo) || idStr.includes(termo) || cliente.includes(termo) || pdv.includes(termo);
     const atendeStatus = statusSelecionado === "Todos" || (v as any).status === statusSelecionado;
-    
+
     return atendeBusca && atendeStatus;
   });
 
   const exportCsv = () => {
     if (vendasFiltradas.length === 0) return;
     
-    const header = "ID,Data,Vendedor,Canal,Valor,Status\n";
+    const header = "ID,Data,Vendedor,OS/PDV,Cliente,Canal,Valor,Status\n";
     const rows = vendasFiltradas
       .map((v) => {
         const id = v.id;
         const dataStr = new Date((v as any).sale_date || v.created_at).toLocaleDateString("pt-BR");
         const vendedor = v.seller?.name ?? "Sem Vendedor";
+        const pdv = (v as any).pdv_number ?? "";
+        const cliente = (v as any).customer_name ?? "";
         const canal = (v as any).channel ?? "comercial";
         const valor = Number(v.amount).toFixed(2);
         const status = v.status;
-        return `${id},${dataStr},"${vendedor}","${canal}",${valor},${status}`;
+        return `${id},${dataStr},"${vendedor}","${pdv}","${cliente}","${canal}",${valor},${status}`;
       })
       .join("\n");
       
@@ -181,7 +186,7 @@ export default function HistoricoPage() {
           <Icon icon="line-md:search" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
           <input
             type="text"
-            placeholder="Buscar por vendedor ou ID..."
+            placeholder="Buscar por vendedor, cliente, OS/PDV ou ID..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="w-full bg-black/50 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30 text-white placeholder:text-neutral-500 transition-all"
@@ -294,11 +299,12 @@ export default function HistoricoPage() {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-white/5 text-neutral-400 border-b border-white/10">
               <tr>
-                <th className="px-6 py-4 font-semibold">ID da Venda</th>
                 <th className="px-6 py-4 font-semibold">Data</th>
                 <th className="px-6 py-4 font-semibold">Vendedor</th>
+                <th className="px-6 py-4 font-semibold">Cliente</th>
+                <th className="px-6 py-4 font-semibold text-center">OS/PDV</th>
                 <th className="px-6 py-4 font-semibold text-center">Canal</th>
-                <th className="px-6 py-4 font-semibold text-right">Valor Total</th>
+                <th className="px-6 py-4 font-semibold text-right">Valor</th>
                 <th className="px-6 py-4 font-semibold text-center">Status</th>
                 <th className="px-6 py-4 font-semibold text-center">Ações</th>
               </tr>
@@ -308,7 +314,7 @@ export default function HistoricoPage() {
               {error ? (
                 <tbody>
                   <tr>
-                    <td colSpan={7} className="p-8 text-center">
+                    <td colSpan={8} className="p-8 text-center">
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -345,7 +351,7 @@ export default function HistoricoPage() {
               ) : vendasFiltradas.length === 0 ? (
                 <tbody>
                   <tr>
-                    <td colSpan={7} className="p-16 text-center">
+                    <td colSpan={8} className="p-16 text-center">
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -367,30 +373,31 @@ export default function HistoricoPage() {
                 >
                   {vendasFiltradas.map((venda) => (
                     <tr key={venda.id} className="hover:bg-white/[0.04] transition-colors">
-                      <td className="px-6 py-4 font-mono text-neutral-400 text-xs">
-                        {venda.id.slice(0, 13)}...
-                      </td>
                       <td className="px-6 py-4 text-neutral-300 font-medium">
                         {new Date((venda as any).sale_date || venda.created_at).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric"
+                          day: "2-digit", month: "2-digit", year: "numeric",
                         })}
                       </td>
                       <td className="px-6 py-4 font-bold text-white">
                         {venda.seller?.name ?? "—"}
                       </td>
-                      
+                      <td className="px-6 py-4 text-neutral-300 max-w-[180px]">
+                        <span className="truncate block" title={(venda as any).customer_name ?? ""}>
+                          {(venda as any).customer_name || <span className="text-neutral-600 italic text-xs">—</span>}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center font-mono text-xs text-neutral-400">
+                        {(venda as any).pdv_number || "—"}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-sm tracking-wider ${
-                          (venda as any).channel === "atendimento" 
-                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" 
+                          (venda as any).channel === "atendimento"
+                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                             : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
                         }`}>
                           {(venda as any).channel ?? "Comercial"}
                         </span>
                       </td>
-
                       <td className="px-6 py-4 font-black text-purple-400 text-right tracking-tight">
                         R$ {Number(venda.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </td>

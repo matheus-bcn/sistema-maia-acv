@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, Calendar as CalendarIcon, Tag } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
 import { listSellers } from "@/lib/data/sellers";
 import { createSaleAction } from "@/lib/actions/sales";
@@ -92,7 +92,7 @@ export function NovaVendaModal({ isOpen, onClose, onSuccess }: NovaVendaModalPro
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black">Nova Venda</h3>
               <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                <X className="h-5 w-5 text-neutral-500 hover:text-white" />
+                <Icon icon="line-md:close" className="h-5 w-5 text-neutral-500 hover:text-white" />
               </button>
             </div>
 
@@ -112,7 +112,7 @@ export function NovaVendaModal({ isOpen, onClose, onSuccess }: NovaVendaModalPro
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold uppercase text-neutral-500 flex items-center gap-1"><Tag className="h-3 w-3"/> Canal</label>
+                  <label className="text-xs font-bold uppercase text-neutral-500 flex items-center gap-1"><Icon icon="mdi:tag" className="h-3 w-3" /> Canal</label>
                   <select
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
@@ -123,7 +123,7 @@ export function NovaVendaModal({ isOpen, onClose, onSuccess }: NovaVendaModalPro
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase text-neutral-500 flex items-center gap-1"><CalendarIcon className="h-3 w-3"/> Data</label>
+                  <label className="text-xs font-bold uppercase text-neutral-500 flex items-center gap-1"><Icon icon="line-md:calendar" className="h-3 w-3" /> Data</label>
                   <input
                     type="date"
                     value={saleDate}
@@ -152,7 +152,7 @@ export function NovaVendaModal({ isOpen, onClose, onSuccess }: NovaVendaModalPro
               disabled={loading}
               className="mt-6 w-full rounded-lg bg-white py-3 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar venda"}
+              {loading ? <Icon icon="line-md:loading-loop" className="h-4 w-4" /> : "Registrar venda"}
             </button>
           </motion.form>
         </div>

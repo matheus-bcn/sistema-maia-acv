@@ -17,6 +17,7 @@ const ROUTE_COLORS: Record<string, string> = {
   "/premiacoes": "text-pink-400",
   "/historico":  "text-blue-400",
   "/relatorio":  "text-violet-400",
+  "/clientes":   "text-teal-400",
   "/equipe":     "text-cyan-400",
   "/configuracao": "text-rose-400",
 };
@@ -91,6 +92,7 @@ export function Sidebar() {
     { nome: "Premiações",  caminho: "/premiacoes",   icone: "line-md:star-pulsating-loop" },
     { nome: "Histórico",   caminho: "/historico",    icone: "line-md:watch-loop" },
     { nome: "Relatório",   caminho: "/relatorio",    icone: "mdi:chart-bar" },
+    { nome: "Clientes",    caminho: "/clientes",     icone: "mdi:account-multiple" },
     { nome: "Equipe",      caminho: "/equipe",       icone: "mdi:account-group" },
     { nome: "Configuração",caminho: "/configuracao", icone: "line-md:cog-loop" },
   ] : [

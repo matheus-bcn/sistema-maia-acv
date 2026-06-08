@@ -20,6 +20,10 @@ export interface Sale {
   amount: number;
   status: SaleStatus;
   created_at: string;
+  sale_date?: string;
+  channel?: string;
+  customer_name?: string | null;
+  pdv_number?: string | null;
   seller?: Seller | null;
 }
 
@@ -65,6 +69,17 @@ export interface VendedorPerfil {
   value: string;
   sales: number;
   status: string;
+}
+
+export interface CustomerStats {
+  customer_name: string;
+  total_gasto: number;
+  total_compras: number;
+  ultima_compra: string;
+  ticket_medio: number;
+  atendentes: string[];
+  dias_sem_comprar: number;
+  status: "vip" | "novo" | "regular" | "dormente";
 }
 
 export interface InsightItem {

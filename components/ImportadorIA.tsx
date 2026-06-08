@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Loader2, UploadCloud, CheckCircle, AlertTriangle, Users, FileSpreadsheet } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
 import { listSellers } from "@/lib/data/sellers";
 import { importPdvReportAction } from "@/lib/actions/sales";
@@ -98,7 +98,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
             <p className="text-xs text-neutral-400 mt-0.5">Leitura de relatório de PDV (Canal Atendimento)</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-neutral-400 hover:text-white">
-            <X className="h-5 w-5" />
+            <Icon icon="line-md:close" className="h-5 w-5" />
           </button>
         </div>
 
@@ -106,7 +106,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
           {/* SELEÇÃO DO VENDEDOR */}
           <div>
             <label className="text-xs font-bold uppercase text-neutral-400 flex items-center gap-1 mb-1.5">
-              <Users className="h-3 w-3" /> Vendedor do Relatório
+              <Icon icon="mdi:account-group" className="h-3 w-3" /> Vendedor do Relatório
             </label>
             <select
               value={sellerId}
@@ -132,13 +132,13 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
             
             {file ? (
               <div className="flex flex-col items-center justify-center text-purple-400">
-                <FileSpreadsheet className="h-10 w-10 mb-2 animate-pulse" />
+                <Icon icon="mdi:file-spreadsheet" className="h-10 w-10 mb-2" />
                 <p className="text-sm font-bold truncate max-w-xs">{file.name}</p>
                 <p className="text-xs text-neutral-500 mt-1">{(file.size / 1024).toFixed(1)} KB - Arquivo carregado</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-neutral-400 group-hover:text-neutral-200">
-                <UploadCloud className="h-10 w-10 mb-2 text-neutral-500 transition-colors group-hover:text-white" />
+                <Icon icon="mdi:cloud-upload" className="h-10 w-10 mb-2 text-neutral-500 transition-colors group-hover:text-white" />
                 <p className="text-sm font-bold">Arraste ou selecione o arquivo do relatório</p>
                 <p className="text-xs text-neutral-500 mt-1">Aceita formatos de texto puro (.csv ou .txt)</p>
               </div>
@@ -148,14 +148,14 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
 
         {error && (
           <div className="flex items-start gap-2 text-sm text-red-400 mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-            <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <Icon icon="line-md:alert-circle-loop" className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <p>{error}</p>
           </div>
         )}
 
         {successMessage && (
           <div className="flex items-start gap-2 text-sm text-purple-400 mt-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-            <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <Icon icon="mdi:check-circle" className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <p>{successMessage}</p>
           </div>
         )}
@@ -167,7 +167,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
         >
           {loading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" /> M.A.I.A processando PDVs...
+              <Icon icon="line-md:loading-loop" className="h-4 w-4" /> M.A.I.A processando PDVs...
             </>
           ) : (
             "Processar e Lançar Vendas"

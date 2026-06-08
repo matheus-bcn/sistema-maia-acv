@@ -79,33 +79,46 @@ export async function importPdvReportAction(formData: FormData, sellerId: string
     const { data: sellerData } = await supabase.from("sellers").select("name").eq("id", sellerId).maybeSingle();
     const sellerName = sellerData?.name ?? "Vendedor Selecionado";
 
-    const rows: { seller_id: string; amount: number; sale_date: string; channel: string }[] = [];
+    type ImportRow = {
+      seller_id: string;
+      amount: number;
+      sale_date: string;
+      channel: string;
+      customer_name: string;
+      pdv_number: string;
+    };
+    const rows: ImportRow[] = [];
     const lines = textContent.split(/\r?\n/);
+
+    // Formato: {PV}  {PDV}  {DD/MM/YYYY}  {NOME DO CLIENTE}  {VALOR}
+    // O PDV é o número da OS. Separadores são 2+ espaços (relatório de colunas fixas).
+    const fullPattern = /^(\d+)\s+(\d+)\s+(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s{2,}([\d.,]+)\s*$/;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      
-      // Filtro Ouro: Se a linha estiver vazia ou NÃO começar com um dígito (PV), pule-a.
-      // Isso elimina cabeçalhos como "Data:", "Vendas:", "Total:", etc.
       if (!line || !/^\d/.test(line)) continue;
 
-      // 1. Extrair a Data (Formato DD/MM/AAAA)
-      const dateMatch = line.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-      
-      // 2. Extrair o Valor Financeiro (Busca a última sequência numérica no final da string)
-      const amountMatch = line.match(/\s([\d.,]+)\s*$/);
+      const match = line.match(fullPattern);
+      if (match) {
+        const pdv_number = match[2];
+        const [d, m, y] = match[3].split("/");
+        const sale_date = `${y}-${m}-${d}`;
+        const customer_name = match[4].trim();
+        const amount = parseFloat(match[5].replace(/\./g, "").replace(",", "."));
 
-      if (dateMatch && amountMatch) {
-        const sale_date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
-        
-        // 3. Limpeza Matemática (Transforma "2.475,00" em 2475.00)
-        const rawAmount = amountMatch[1];
-        const cleanAmount = rawAmount.replace(/\./g, "").replace(",", ".");
-        const amount = parseFloat(cleanAmount);
-
-        // Apenas lança se for um valor real maior que zero
         if (!isNaN(amount) && amount > 0) {
-          rows.push({ seller_id: sellerId, amount, sale_date, channel: "atendimento" });
+          rows.push({ seller_id: sellerId, amount, sale_date, channel: "atendimento", customer_name, pdv_number });
+        }
+      } else {
+        // Fallback para linhas sem cliente legível — extrai apenas data e valor
+        const dateMatch = line.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        const amountMatch = line.match(/\s([\d.,]+)\s*$/);
+        if (dateMatch && amountMatch) {
+          const sale_date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+          const amount = parseFloat(amountMatch[1].replace(/\./g, "").replace(",", "."));
+          if (!isNaN(amount) && amount > 0) {
+            rows.push({ seller_id: sellerId, amount, sale_date, channel: "atendimento", customer_name: "", pdv_number: "" });
+          }
         }
       }
     }

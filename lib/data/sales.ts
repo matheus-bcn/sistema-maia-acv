@@ -157,33 +157,53 @@ export async function getDailySalesForMonth(
 
 export async function createSale(
   supabase: SupabaseClient,
-  input: { seller_id: string; amount: number; status?: SaleStatus; sale_date: string; channel: string; }
+  input: {
+    seller_id: string;
+    amount: number;
+    status?: SaleStatus;
+    sale_date: string;
+    channel: string;
+    customer_name?: string;
+    pdv_number?: string;
+  }
 ): Promise<{ sale: Sale | null; error: string | null }> {
   const { data, error } = await supabase.from("sales").insert({
-      seller_id: input.seller_id,
-      amount: input.amount,
-      status: input.status ?? "Concluída",
-      sale_date: input.sale_date,
-      channel: input.channel,
-    }).select("*, seller:sellers(*)").single();
+    seller_id: input.seller_id,
+    amount: input.amount,
+    status: input.status ?? "Concluída",
+    sale_date: input.sale_date,
+    channel: input.channel,
+    customer_name: input.customer_name || null,
+    pdv_number: input.pdv_number || null,
+  }).select("*, seller:sellers(*)").single();
 
   return { sale: (data as Sale) ?? null, error: error?.message ?? null };
 }
 
 export async function importSalesFromRows(
-  supabase: SupabaseClient, rows: { seller_id: string; amount: number; channel?: string; sale_date?: string }[]
+  supabase: SupabaseClient,
+  rows: {
+    seller_id: string;
+    amount: number;
+    channel?: string;
+    sale_date?: string;
+    customer_name?: string;
+    pdv_number?: string;
+  }[]
 ): Promise<{ inserted: number; error: string | null }> {
   if (rows.length === 0) return { inserted: 0, error: null };
-  
+
   const date = new Date();
-  const safeDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+  const safeDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 
   const payload = rows.map((r) => ({
     seller_id: r.seller_id,
     amount: r.amount,
     status: "Concluída" as const,
     channel: r.channel ?? "comercial",
-    sale_date: r.sale_date ?? safeDate
+    sale_date: r.sale_date ?? safeDate,
+    customer_name: r.customer_name || null,
+    pdv_number: r.pdv_number || null,
   }));
 
   const { data, error } = await supabase.from("sales").insert(payload).select("id");
