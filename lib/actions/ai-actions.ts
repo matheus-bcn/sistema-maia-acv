@@ -1,9 +1,9 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const MODEL = "gemini-2.0-flash-lite";
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = "llama3-70b-8192";
 
 type InsightTipo = "ALERTA" | "PARABENS" | "DICA" | "NEUTRO";
 
@@ -22,60 +22,60 @@ export type ContextoMAIA = {
 function classificarTipo(stats: any): InsightTipo {
   const pct = stats.metaGlobal > 0 ? (stats.totalFaturado / stats.metaGlobal) * 100 : 0;
   if (pct >= 100) return "PARABENS";
-  if (pct < 60)   return "ALERTA";
+  if (pct < 60) return "ALERTA";
   return Math.random() > 0.5 ? "DICA" : "NEUTRO";
 }
 
 const PROMPTS: Record<InsightTipo, (stats: any) => string> = {
   ALERTA: (s) => `
 Você é M.A.I.A, IA de análise comercial. Tom: direto e motivador.
-Dados: Faturado R$ ${s.totalFaturado.toLocaleString('pt-BR')}, Meta R$ ${s.metaGlobal.toLocaleString('pt-BR')}, ${s.qtdVendas} vendas.
-A equipe está ABAIXO da meta (${s.metaGlobal > 0 ? ((s.totalFaturado/s.metaGlobal)*100).toFixed(1) : 0}%).
+Dados: Faturado R$ ${s.totalFaturado.toLocaleString("pt-BR")}, Meta R$ ${s.metaGlobal.toLocaleString("pt-BR")}, ${s.qtdVendas} vendas.
+A equipe está ABAIXO da meta (${s.metaGlobal > 0 ? ((s.totalFaturado / s.metaGlobal) * 100).toFixed(1) : 0}%).
 Gere um alerta motivador com diagnóstico e plano de ação urgente.
 Retorne APENAS JSON: {"titulo":"...","mensagem":"...","acao":"...","tipo":"ALERTA"}
 Titulo: máx 6 palavras. Mensagem: 2 frases. Ação: 1 frase imperativa curta.`,
 
   PARABENS: (s) => `
 Você é M.A.I.A, IA de análise comercial. Tom: eufórico e celebratório.
-Dados: Faturado R$ ${s.totalFaturado.toLocaleString('pt-BR')}, Meta R$ ${s.metaGlobal.toLocaleString('pt-BR')}, ${s.qtdVendas} vendas.
-A equipe BATEU a meta (${s.metaGlobal > 0 ? ((s.totalFaturado/s.metaGlobal)*100).toFixed(1) : 0}%)!
+Dados: Faturado R$ ${s.totalFaturado.toLocaleString("pt-BR")}, Meta R$ ${s.metaGlobal.toLocaleString("pt-BR")}, ${s.qtdVendas} vendas.
+A equipe BATEU a meta (${s.metaGlobal > 0 ? ((s.totalFaturado / s.metaGlobal) * 100).toFixed(1) : 0}%)!
 Celebre o resultado e sugira como manter o ritmo.
 Retorne APENAS JSON: {"titulo":"...","mensagem":"...","acao":"...","tipo":"PARABENS"}
 Titulo: máx 6 palavras. Mensagem: 2 frases celebratórias. Ação: 1 frase para manter o momentum.`,
 
   DICA: (s) => `
 Você é M.A.I.A, IA de análise comercial. Tom: consultivo e estratégico.
-Dados: Faturado R$ ${s.totalFaturado.toLocaleString('pt-BR')}, Meta R$ ${s.metaGlobal.toLocaleString('pt-BR')}, ${s.qtdVendas} vendas, ticket médio R$ ${s.qtdVendas > 0 ? (s.totalFaturado/s.qtdVendas).toFixed(0) : 0}.
+Dados: Faturado R$ ${s.totalFaturado.toLocaleString("pt-BR")}, Meta R$ ${s.metaGlobal.toLocaleString("pt-BR")}, ${s.qtdVendas} vendas, ticket médio R$ ${s.qtdVendas > 0 ? (s.totalFaturado / s.qtdVendas).toFixed(0) : 0}.
 Gere uma dica estratégica de vendas (upsell, gestão de pipeline, horários de pico, abordagem de cliente) adaptada aos dados.
 Retorne APENAS JSON: {"titulo":"...","mensagem":"...","acao":"...","tipo":"DICA"}
 Titulo: máx 6 palavras. Mensagem: 2 frases com a dica. Ação: 1 tarefa prática para hoje.`,
 
   NEUTRO: (s) => `
 Você é M.A.I.A, IA de análise comercial. Tom: analítico e informativo.
-Dados: Faturado R$ ${s.totalFaturado.toLocaleString('pt-BR')}, Meta R$ ${s.metaGlobal.toLocaleString('pt-BR')}, ${s.qtdVendas} vendas.
+Dados: Faturado R$ ${s.totalFaturado.toLocaleString("pt-BR")}, Meta R$ ${s.metaGlobal.toLocaleString("pt-BR")}, ${s.qtdVendas} vendas.
 Gere uma análise do momento atual da equipe com projeção e observação sobre o ritmo.
 Retorne APENAS JSON: {"titulo":"...","mensagem":"...","acao":"...","tipo":"NEUTRO"}
 Titulo: máx 6 palavras. Mensagem: 2 frases analíticas. Ação: 1 próximo passo claro.`,
 };
 
 export async function obterBriefingIAAction(stats: any) {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     return { success: false, error: "Chave da IA não configurada." };
   }
 
   const tipo = classificarTipo(stats);
 
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
     const prompt = PROMPTS[tipo](stats);
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text();
+    const completion = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 300,
+    });
 
-    const cleanText = rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
+    const rawText = completion.choices[0]?.message?.content ?? "";
+    const cleanText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleanText);
 
     return {
@@ -87,7 +87,10 @@ export async function obterBriefingIAAction(stats: any) {
     };
   } catch (error) {
     console.error("Erro na IA:", error);
-    const pct = stats.metaGlobal > 0 ? ((stats.totalFaturado / stats.metaGlobal) * 100).toFixed(1) : "0";
+    const pct =
+      stats.metaGlobal > 0
+        ? ((stats.totalFaturado / stats.metaGlobal) * 100).toFixed(1)
+        : "0";
     return {
       success: false,
       titulo: "Análise do Período",
@@ -99,15 +102,14 @@ export async function obterBriefingIAAction(stats: any) {
 }
 
 export async function analisarRelatorioAction(dadosRelatorio: any) {
-  if (!process.env.GEMINI_API_KEY) {
-    return { success: false, error: "GEMINI_API_KEY não configurada." };
+  if (!process.env.GROQ_API_KEY) {
+    return { success: false, error: "GROQ_API_KEY não configurada." };
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
-
     const d = dadosRelatorio;
-    const pct = d.metaEquipe > 0 ? ((d.faturamentoTotal / d.metaEquipe) * 100).toFixed(1) : "0";
+    const pct =
+      d.metaEquipe > 0 ? ((d.faturamentoTotal / d.metaEquipe) * 100).toFixed(1) : "0";
     const abaixo = (d.vendedores ?? []).filter((v: any) => v.status === "abaixo");
     const acima = (d.vendedores ?? []).filter((v: any) => v.status === "acima");
 
@@ -130,8 +132,14 @@ Gere um relatório em 3 parágrafos curtos (texto corrido, sem markdown, sem ast
 
 Máximo 150 palavras. Tom: direto, analítico e motivador.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const completion = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 400,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() ?? "";
     return { success: true, insight: text };
   } catch (error: any) {
     console.error("Erro analisarRelatorioAction:", error?.message ?? error);
@@ -144,20 +152,20 @@ export async function chatComMAIAAction(
   contexto: ContextoMAIA,
   historico: MensagemHistorico[]
 ) {
-  if (!process.env.GEMINI_API_KEY) {
-    return { success: false, error: "GEMINI_API_KEY não configurada." };
+  if (!process.env.GROQ_API_KEY) {
+    return { success: false, error: "GROQ_API_KEY não configurada." };
   }
 
   try {
     const { periodo, stats, rankings, diagnosticos } = contexto;
-    const pct = stats.metaGlobal > 0
-      ? ((stats.totalFaturado / stats.metaGlobal) * 100).toFixed(1)
-      : "0";
-    const ticketMedio = stats.qtdVendas > 0
-      ? Math.round(stats.totalFaturado / stats.qtdVendas)
-      : 0;
+    const pct =
+      stats.metaGlobal > 0
+        ? ((stats.totalFaturado / stats.metaGlobal) * 100).toFixed(1)
+        : "0";
+    const ticketMedio =
+      stats.qtdVendas > 0 ? Math.round(stats.totalFaturado / stats.qtdVendas) : 0;
 
-    const systemInstruction = `Você é M.A.I.A (Módulo de Análise e Inteligência Artificial), a analista comercial inteligente da equipe de vendas. Você tem acesso aos dados em tempo real da equipe.
+    const systemPrompt = `Você é M.A.I.A (Módulo de Análise e Inteligência Artificial), a analista comercial inteligente da equipe de vendas. Você tem acesso aos dados em tempo real da equipe.
 
 DADOS ATUAIS — Período: ${periodo.inicio} a ${periodo.fim}
 • Faturamento: R$ ${stats.totalFaturado.toLocaleString("pt-BR")}
@@ -170,33 +178,37 @@ RANKING DE VENDEDORES:
 ${rankings.map((r) => `${r.posicao}º ${r.nome}: R$ ${r.faturado.toLocaleString("pt-BR")} (${r.vendas} vendas)`).join("\n")}
 
 DIAGNÓSTICO INDIVIDUAL:
-${diagnosticos.map((d) => {
-  const p = d.meta > 0 ? Math.round((d.realizado / d.meta) * 100) : 0;
-  return `• ${d.nome}: ${p}% da meta — status: ${d.status === "acima" ? "acima da meta" : d.status === "abaixo" ? "abaixo da meta" : "no ritmo"}`;
-}).join("\n")}
+${diagnosticos
+  .map((d) => {
+    const p = d.meta > 0 ? Math.round((d.realizado / d.meta) * 100) : 0;
+    return `• ${d.nome}: ${p}% da meta — ${d.status === "acima" ? "acima da meta" : d.status === "abaixo" ? "abaixo da meta" : "no ritmo"}`;
+  })
+  .join("\n")}
 
-REGRAS DE COMPORTAMENTO:
-1. Responda APENAS perguntas sobre vendas, estratégias comerciais, performance de vendedores, metas, técnicas de negociação, gestão de equipes de vendas e temas diretamente relacionados ao negócio.
-2. Se perguntarem sobre temas não relacionados a vendas/comercial (política, entretenimento, culinária, etc.), recuse educadamente: "Minha especialidade é análise comercial. Posso ajudar com dados de vendas, estratégias e performance da equipe."
-3. Use sempre os dados reais fornecidos acima nas respostas.
-4. Compare vendedores quando relevante. Identifique padrões. Sugira ações concretas.
-5. Tom: direto, analítico, motivador e profissional.
-6. Respostas concisas (máximo 180 palavras), sem markdown excessivo — apenas texto corrido com ênfase natural.`;
+REGRAS:
+1. Responda APENAS perguntas sobre vendas, estratégias comerciais, performance de vendedores, metas e temas relacionados ao negócio.
+2. Para temas fora do escopo comercial, recuse educadamente e redirecione.
+3. Use os dados reais acima nas respostas. Compare vendedores quando relevante.
+4. Tom: direto, analítico, motivador e profissional.
+5. Máximo 180 palavras por resposta. Texto corrido, sem markdown excessivo.`;
 
-    const model = genAI.getGenerativeModel({ model: MODEL });
-
-    // systemInstruction embutido como troca inicial para compatibilidade com v1beta
-    const bootstrapHistory = [
-      { role: "user" as const, parts: [{ text: `Contexto do sistema:\n${systemInstruction}` }] },
-      { role: "model" as const, parts: [{ text: "Entendido. Estou pronto para analisar os dados da equipe e responder exclusivamente perguntas comerciais com base nessas informações." }] },
-      ...historico.map((m) => ({ role: m.role as "user" | "model", parts: [{ text: m.content }] })),
+    const messages: Groq.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...historico.map((m) => ({
+        role: (m.role === "model" ? "assistant" : "user") as "user" | "assistant",
+        content: m.content,
+      })),
+      { role: "user", content: mensagem },
     ];
 
-    const chat = model.startChat({ history: bootstrapHistory });
+    const completion = await groq.chat.completions.create({
+      model: MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 400,
+    });
 
-    const result = await chat.sendMessage(mensagem);
-    const resposta = result.response.text().trim();
-
+    const resposta = completion.choices[0]?.message?.content?.trim() ?? "";
     return { success: true, resposta };
   } catch (error: any) {
     const msg = error?.message ?? String(error);
