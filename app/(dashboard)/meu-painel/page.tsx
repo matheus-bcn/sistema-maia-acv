@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, TrendingUp, Award, DollarSign, Loader2, Calendar, Swords, ShieldAlert, Check, X } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function MeuPainelPage() {
@@ -166,7 +166,7 @@ export default function MeuPainelPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
+        <Icon icon="line-md:loading-loop" className="h-10 w-10 text-purple-500" />
       </div>
     );
   }
@@ -201,7 +201,7 @@ export default function MeuPainelPage() {
       <div className="grid gap-6 md:grid-cols-4 mb-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-purple-500/20 rounded-lg text-purple-400"><DollarSign className="h-5 w-5" /></div>
+            <div className="p-2.5 bg-purple-500/20 rounded-lg text-purple-400"><Icon icon="mdi:currency-usd" className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Meu Faturamento</h3>
           </div>
           <p className="text-3xl font-black text-purple-400">R$ {totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
@@ -209,7 +209,7 @@ export default function MeuPainelPage() {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-blue-500/10 rounded-lg text-blue-400"><TrendingUp className="h-5 w-5" /></div>
+            <div className="p-2.5 bg-blue-500/10 rounded-lg text-blue-400"><Icon icon="mdi:trending-up" className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Ticket Médio</h3>
           </div>
           <p className="text-3xl font-black text-white">R$ {ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
@@ -217,7 +217,7 @@ export default function MeuPainelPage() {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-yellow-500/10 rounded-lg text-yellow-400"><Award className="h-5 w-5" /></div>
+            <div className="p-2.5 bg-yellow-500/10 rounded-lg text-yellow-400"><Icon icon="mdi:star-circle" className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Minha Meta</h3>
           </div>
           <p className="text-3xl font-black text-white">R$ {metaIndividual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
@@ -246,7 +246,7 @@ export default function MeuPainelPage() {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="glass-card rounded-2xl p-8 border border-white/10 bg-white/[0.02] mb-8 relative overflow-hidden">
         <div className="flex justify-between items-end mb-4 relative z-10">
           <div>
-            <h3 className="text-xl font-bold flex items-center gap-2"><Target className="h-6 w-6 text-purple-400" /> Corrida para a Meta</h3>
+            <h3 className="text-xl font-bold flex items-center gap-2"><Icon icon="mdi:target" className="h-6 w-6 text-purple-400" /> Corrida para a Meta</h3>
             {faltaParaMeta > 0 ? (
               <p className="text-neutral-400 text-sm mt-1">Faltam <strong className="text-white">R$ {faltaParaMeta.toLocaleString("pt-BR")}</strong> para bater a meta!</p>
             ) : (
@@ -272,7 +272,7 @@ export default function MeuPainelPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-3 bg-red-500/10 rounded-xl text-red-500 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-            <Swords className="h-6 w-6" />
+            <Icon icon="mdi:sword-cross" className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-2xl font-black text-white">Arena X1</h2>
@@ -283,7 +283,7 @@ export default function MeuPainelPage() {
         <div className="glass-card rounded-3xl p-1 border border-white/10 bg-white/[0.02] overflow-hidden">
           {!batalha && (
             <div className="p-8 text-center bg-gradient-to-b from-black/0 to-black/40">
-              <ShieldAlert className="h-12 w-12 text-neutral-600 mx-auto mb-4" />
+              <Icon icon="mdi:shield-alert" className="h-12 w-12 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-white mb-2">Nenhum desafio ativo</h3>
               <p className="text-neutral-400 text-sm mb-6 max-w-md mx-auto">Selecione um vendedor da equipe abaixo e envie um convite para o combate X1. Só pode haver um vencedor!</p>
               
@@ -303,7 +303,7 @@ export default function MeuPainelPage() {
                   disabled={!colegaSelecionado || loadingBatalha}
                   className="w-full sm:w-1/3 bg-red-500 hover:bg-red-600 text-white font-black py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loadingBatalha ? <Loader2 className="h-5 w-5 animate-spin" /> : "Desafiar!"}
+                  {loadingBatalha ? <Icon icon="line-md:loading-loop" className="h-5 w-5" /> : "Desafiar!"}
                 </button>
               </div>
             </div>
@@ -313,13 +313,13 @@ export default function MeuPainelPage() {
             <div className="p-8 text-center bg-gradient-to-b from-red-500/5 to-transparent">
               {batalha.challenger_id === vendedor.id ? (
                 <>
-                  <Loader2 className="h-12 w-12 text-red-500 mx-auto mb-4 animate-spin" />
+                  <Icon icon="line-md:loading-loop" className="h-12 w-12 text-red-500 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-white mb-2">Desafio Enviado!</h3>
                   <p className="text-neutral-400">Aguardando <strong className="text-white">{oponente.name}</strong> aceitar o seu combate...</p>
                 </>
               ) : (
                 <>
-                  <Swords className="h-16 w-16 text-red-500 mx-auto mb-4 animate-bounce" />
+                  <Icon icon="mdi:sword-cross" className="h-16 w-16 text-red-500 mx-auto mb-4" />
                   <h3 className="text-2xl font-black text-white mb-2">Você foi desafiado!</h3>
                   <p className="text-neutral-400 mb-8"><strong className="text-white">{oponente.name}</strong> te chamou para a Arena X1. Vai encarar?</p>
                   
@@ -329,14 +329,14 @@ export default function MeuPainelPage() {
                       disabled={loadingBatalha}
                       className="px-6 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-neutral-300 font-bold transition-all flex items-center gap-2"
                     >
-                      <X className="h-5 w-5" /> Arregar
+                      <Icon icon="line-md:close" className="h-5 w-5" /> Arregar
                     </button>
                     <button 
                       onClick={() => responderDesafio('ativo')}
                       disabled={loadingBatalha}
                       className="px-8 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all flex items-center gap-2 hover:scale-105"
                     >
-                      <Check className="h-5 w-5" /> Aceitar Combate
+                      <Icon icon="mdi:check-bold" className="h-5 w-5" /> Aceitar Combate
                     </button>
                   </div>
                 </>
@@ -392,7 +392,7 @@ export default function MeuPainelPage() {
 
       {/* HISTÓRICO DE VENDAS */}
       <div className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02]">
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Calendar className="h-5 w-5 text-neutral-400" /> Minhas Últimas Vendas</h3>
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Icon icon="line-md:calendar" className="h-5 w-5 text-neutral-400" /> Minhas Últimas Vendas</h3>
         {vendas.length > 0 ? (
           <div className="space-y-3">
             {vendas.slice(0, 5).reverse().map((venda) => (

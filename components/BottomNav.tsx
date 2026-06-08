@@ -23,10 +23,11 @@ const ADMIN_MAIS = [
 ];
 
 const USER_TABS = [
-  { nome: "Painel",      caminho: "/meu-painel", icone: "line-md:account",             cor: "#f97316" },
-  { nome: "Ranking",     caminho: "/ranking",    icone: "mdi:trophy",                  cor: "#facc15" },
-  { nome: "Calendário",  caminho: "/calendario", icone: "line-md:calendar",            cor: "#2dd4bf" },
-  { nome: "Premiações",  caminho: "/premiacoes", icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
+  { nome: "Painel",      caminho: "/meu-painel",    icone: "line-md:account",             cor: "#f97316" },
+  { nome: "Ranking",     caminho: "/ranking",        icone: "mdi:trophy",                  cor: "#facc15" },
+  { nome: "Relatório",   caminho: "/meu-relatorio",  icone: "mdi:chart-bar",               cor: "#a78bfa" },
+  { nome: "Calendário",  caminho: "/calendario",     icone: "line-md:calendar",            cor: "#2dd4bf" },
+  { nome: "Premiações",  caminho: "/premiacoes",     icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
 ];
 
 export function BottomNav() {

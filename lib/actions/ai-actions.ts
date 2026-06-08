@@ -147,6 +147,62 @@ Máximo 150 palavras. Tom: direto, analítico e motivador.`;
   }
 }
 
+export async function analisarVendedorAction(dadosVendedor: {
+  nome: string;
+  periodo: { inicio: string; fim: string };
+  faturamento: number;
+  meta: number;
+  qtdVendas: number;
+  ticketMedio: number;
+  posicaoRanking: number;
+  totalVendedores: number;
+  projecaoFechamento: number;
+}) {
+  if (!process.env.GROQ_API_KEY) {
+    return { success: false, error: "GROQ_API_KEY não configurada." };
+  }
+
+  try {
+    const d = dadosVendedor;
+    const pct = d.meta > 0 ? ((d.faturamento / d.meta) * 100).toFixed(1) : "0";
+    const restante = Math.max(0, d.meta - d.faturamento);
+    const status = Number(pct) >= 100 ? "BATEU" : Number(pct) >= 75 ? "PRÓXIMO" : "ABAIXO";
+
+    const prompt = `Você é M.A.I.A, analista comercial inteligente. Analise a performance INDIVIDUAL deste vendedor e gere um relatório pessoal e motivador em português brasileiro.
+
+DADOS DO VENDEDOR — ${d.nome} (${d.periodo.inicio} a ${d.periodo.fim}):
+- Faturamento realizado: R$ ${d.faturamento.toLocaleString("pt-BR")}
+- Meta individual: R$ ${d.meta.toLocaleString("pt-BR")}
+- Atingimento: ${pct}%
+- Status: ${status === "BATEU" ? "META BATIDA!" : status === "PRÓXIMO" ? "Próximo da meta" : "Abaixo da meta"}
+- Falta para bater a meta: R$ ${restante.toLocaleString("pt-BR")}
+- Total de vendas fechadas: ${d.qtdVendas}
+- Ticket médio: R$ ${d.ticketMedio.toLocaleString("pt-BR")}
+- Posição no ranking: ${d.posicaoRanking}º de ${d.totalVendedores} vendedores
+- Projeção de fechamento do mês: R$ ${d.projecaoFechamento.toLocaleString("pt-BR")}
+
+Gere um relatório em 3 parágrafos curtos (texto corrido, sem markdown, sem asteriscos, sem listas), SEMPRE chamando o vendedor pelo nome:
+1. Situação atual: performance dele vs meta com tom ${status === "BATEU" ? "celebratório" : status === "PRÓXIMO" ? "motivador" : "urgente e encorajador"}
+2. Análise do ritmo: ticket médio, projeção de fechamento e posição no ranking
+3. Recomendação pessoal e específica para os próximos dias
+
+Máximo 160 palavras. Tom: direto, analítico e ${status === "BATEU" ? "eufórico" : "motivador"}.`;
+
+    const completion = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 450,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() ?? "";
+    return { success: true, insight: text };
+  } catch (error: any) {
+    console.error("Erro analisarVendedorAction:", error?.message ?? error);
+    return { success: false, error: "Falha ao conectar com a IA." };
+  }
+}
+
 export async function chatComMAIAAction(
   mensagem: string,
   contexto: ContextoMAIA,

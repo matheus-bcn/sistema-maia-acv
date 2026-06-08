@@ -10,7 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 
 const ROUTE_COLORS: Record<string, string> = {
   "/":           "text-orange-400",
-  "/meu-painel": "text-orange-400",
+  "/meu-painel":    "text-orange-400",
+  "/meu-relatorio": "text-violet-400",
   "/ranking":    "text-yellow-400",
   "/calendario": "text-teal-400",
   "/premiacoes": "text-pink-400",
@@ -93,10 +94,11 @@ export function Sidebar() {
     { nome: "Equipe",      caminho: "/equipe",       icone: "mdi:account-group" },
     { nome: "Configuração",caminho: "/configuracao", icone: "line-md:cog-loop" },
   ] : [
-    { nome: "Meu Painel",  caminho: "/meu-painel",  icone: "line-md:account" },
-    { nome: "Ranking",     caminho: "/ranking",      icone: "mdi:trophy" },
-    { nome: "Calendário",  caminho: "/calendario",   icone: "line-md:calendar" },
-    { nome: "Premiações",  caminho: "/premiacoes",   icone: "line-md:star-pulsating-loop" },
+    { nome: "Meu Painel",  caminho: "/meu-painel",   icone: "line-md:account" },
+    { nome: "Ranking",     caminho: "/ranking",       icone: "mdi:trophy" },
+    { nome: "Relatório",   caminho: "/meu-relatorio", icone: "mdi:chart-bar" },
+    { nome: "Calendário",  caminho: "/calendario",    icone: "line-md:calendar" },
+    { nome: "Premiações",  caminho: "/premiacoes",    icone: "line-md:star-pulsating-loop" },
   ];
 
   return (
