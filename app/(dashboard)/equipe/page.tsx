@@ -15,7 +15,8 @@ import { updateSellerStatusAction } from "@/lib/actions/sellers";
 import { deletarVendedorAction } from "@/lib/actions/equipe"; 
 import { SellerCard } from "@/components/SellerCard";
 import { VendedorModal } from "@/components/VendedorModal";
-import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal"; // <-- IMPORTAÇÃO DO NOVO MODAL
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
+import { VendedorPainelDrawer } from "@/components/VendedorPainelDrawer";
 import type { Seller, SellerStatus } from "@/types";
 
 const SkeletonSeller = () => (
@@ -45,11 +46,11 @@ export default function EquipePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [sellerToEdit, setSellerToEdit] = useState<Seller | null>(null);
 
-  // NOVO: Estado para controlar o Modal de Exclusão Customizado
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; seller: Seller | null }>({
     open: false,
-    seller: null
+    seller: null,
   });
+  const [painelSeller, setPainelSeller] = useState<Seller | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -202,12 +203,12 @@ export default function EquipePage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2 }}
               >
-                <SellerCard 
-                  seller={membro} 
-                  onToggleStatus={toggleStatus} 
+                <SellerCard
+                  seller={membro}
+                  onToggleStatus={toggleStatus}
                   onEdit={() => handleEdit(membro)}
-                  // NOVO: Em vez de apagar direto, abre o modal e passa os dados do vendedor
-                  onDelete={() => setDeleteModal({ open: true, seller: membro })} 
+                  onDelete={() => setDeleteModal({ open: true, seller: membro })}
+                  onViewPanel={() => setPainelSeller(membro)}
                 />
               </motion.div>
             ))}
@@ -224,12 +225,18 @@ export default function EquipePage() {
       />
 
       {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
-      <ConfirmDeleteModal 
+      <ConfirmDeleteModal
         isOpen={deleteModal.open}
         sellerName={deleteModal.seller?.name || ""}
         loading={loading}
         onClose={() => setDeleteModal({ open: false, seller: null })}
         onConfirm={confirmDelete}
+      />
+
+      {/* PAINEL DO VENDEDOR (admin view) */}
+      <VendedorPainelDrawer
+        seller={painelSeller}
+        onClose={() => setPainelSeller(null)}
       />
     </>
   );
