@@ -47,6 +47,7 @@ export default function ClientesPage() {
   const [insights, setInsights] = useState<any[]>([]);
   const [loadingIA, setLoadingIA] = useState(false);
   const [insightsGerados, setInsightsGerados] = useState(false);
+  const [insightErro, setInsightErro] = useState<string | null>(null);
   const [clienteSelecionado, setClienteSelecionado] = useState<CustomerStats | null>(null);
 
   const [periodo, setPeriodo] = useState(() => {
@@ -77,6 +78,7 @@ export default function ClientesPage() {
   const gerarInsights = async () => {
     if (clientes.length === 0) return;
     setLoadingIA(true);
+    setInsightErro(null);
     try {
       const ticketMedioGeral =
         clientes.length > 0 ? clientes.reduce((s, c) => s + c.total_gasto, 0) / clientes.reduce((s, c) => s + c.total_compras, 0) : 0;
@@ -96,8 +98,15 @@ export default function ClientesPage() {
           nome: c.customer_name, totalGasto: c.total_gasto, ticketMedio: c.ticket_medio,
         })),
       });
-      if (result.success && result.insights) setInsights(result.insights);
-      setInsightsGerados(true);
+
+      if (result.success && Array.isArray(result.insights) && result.insights.length > 0) {
+        setInsights(result.insights);
+        setInsightsGerados(true);
+      } else {
+        setInsightErro((result as any).error || "A IA não retornou insights válidos. Tente novamente.");
+      }
+    } catch (err: any) {
+      setInsightErro("Erro de conexão ao chamar a IA. Verifique sua conexão e tente novamente.");
     } finally {
       setLoadingIA(false);
     }
@@ -199,13 +208,24 @@ export default function ClientesPage() {
             )}
           </div>
 
-          <AnimatePresence>
-            {insights.length > 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="grid gap-3 md:grid-cols-2"
-              >
+          <AnimatePresence mode="wait">
+            {insightErro ? (
+              <motion.div key="erro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 rounded-xl border border-orange-500/20 bg-orange-500/5">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Icon icon="line-md:alert-circle-loop" className="icon-always h-4 w-4 text-orange-400 flex-shrink-0" />
+                  <p className="text-xs text-orange-300/80 leading-relaxed">{insightErro}</p>
+                </div>
+                <button
+                  onClick={() => { setInsightErro(null); gerarInsights(); }}
+                  disabled={loadingIA}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-orange-400 border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 transition-all flex-shrink-0 disabled:opacity-50"
+                >
+                  <Icon icon="mdi:reload" className="h-3.5 w-3.5" /> Tentar novamente
+                </button>
+              </motion.div>
+            ) : insights.length > 0 ? (
+              <motion.div key="insights" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-3 md:grid-cols-2">
                 {insights.map((ins, i) => {
                   const cfg = INSIGHT_CONFIG[ins.tipo] ?? INSIGHT_CONFIG.oportunidade;
                   return (
@@ -233,12 +253,12 @@ export default function ClientesPage() {
                   );
                 })}
               </motion.div>
-            ) : !insightsGerados ? (
-              <p className="text-xs text-neutral-500 italic">
-                Clique em "Gerar Insights" para a M.A.I.A analisar os clientes do período e sugerir ações de retomada, fidelização e oportunidades.
-              </p>
             ) : (
-              <p className="text-xs text-neutral-500 italic">Não foi possível gerar insights neste momento.</p>
+              <motion.p key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-neutral-500 italic">
+                {loadingIA
+                  ? "A M.A.I.A está analisando os dados dos clientes..."
+                  : "Clique em \"Gerar Insights\" para a M.A.I.A analisar os clientes do período e sugerir ações de retomada, fidelização e oportunidades."}
+              </motion.p>
             )}
           </AnimatePresence>
         </div>
