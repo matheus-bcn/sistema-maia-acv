@@ -11,6 +11,47 @@ import { getDailyComparisonData } from "@/lib/data/sales";
 import { getSellerGoal } from "@/lib/data/goals";
 import { enviarDesafioAction, finalizarBatalhaAction } from "@/lib/actions/battles";
 
+// Faixas de comissão progressiva
+const FAIXAS_COMISSAO = [
+  { min: 20000, max: 30000, taxa: 0.03, label: "R$ 21k – R$ 30k", cor: "#60a5fa" },
+  { min: 30000, max: 40000, taxa: 0.04, label: "R$ 31k – R$ 40k", cor: "#34d399" },
+  { min: 40000, max: 50000, taxa: 0.05, label: "R$ 41k – R$ 50k", cor: "#a78bfa" },
+  { min: 50000, max: Infinity, taxa: 0.06, label: "R$ 51k+",        cor: "#f59e0b" },
+];
+
+interface FaixaDetalhe {
+  label: string;
+  base: number;
+  taxa: number;
+  comissao: number;
+  cor: string;
+}
+
+function calcularComissaoProgressiva(valor: number): { total: number; detalhes: FaixaDetalhe[] } {
+  if (valor <= 20000) return { total: 0, detalhes: [] };
+  const detalhes: FaixaDetalhe[] = [];
+  let total = 0;
+  for (const faixa of FAIXAS_COMISSAO) {
+    if (valor <= faixa.min) break;
+    const base = Math.min(valor, faixa.max) - faixa.min;
+    const comissao = base * faixa.taxa;
+    total += comissao;
+    detalhes.push({ label: faixa.label, base, taxa: faixa.taxa * 100, comissao, cor: faixa.cor });
+  }
+  return { total, detalhes };
+}
+
+function parseMoeda(v: string): number {
+  return parseFloat(v.replace(/\./g, "").replace(",", ".")) || 0;
+}
+
+function formatMoeda(v: string): string {
+  const digits = v.replace(/\D/g, "");
+  if (!digits) return "";
+  const num = parseInt(digits, 10) / 100;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function getInitialPeriodo() {
   const hoje = new Date();
   const ano = hoje.getFullYear();
@@ -34,9 +75,8 @@ export default function MeuPainelPage() {
   const [periodo, setPeriodo] = useState(getInitialPeriodo);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
-  // Comissão
-  const [comissaoBase, setComissaoBase] = useState(2.5);
-  const [comissaoBonus, setComissaoBonus] = useState(4.0);
+  // Calculadora de comissão
+  const [calcInput, setCalcInput] = useState("");
 
   // Estados da Batalha X1
   const [colegas, setColegas] = useState<any[]>([]);
@@ -81,18 +121,6 @@ export default function MeuPainelPage() {
 
         const meta = await getSellerGoal(supabase, sellerData.id);
         setMetaIndividual(meta);
-
-        // Taxas de comissão da empresa
-        try {
-          const { data: settings } = await supabase
-            .from("company_settings")
-            .select("commission_rate, commission_rate_bonus")
-            .maybeSingle();
-          if (settings?.commission_rate != null) {
-            setComissaoBase(Number(settings.commission_rate));
-            setComissaoBonus(Number(settings.commission_rate_bonus ?? 4));
-          }
-        } catch (e) {}
 
         // Vendas do período selecionado
         const { data: salesData } = await supabase
@@ -234,11 +262,14 @@ export default function MeuPainelPage() {
   );
 
   const metaBatida = progresso >= 100;
-  const taxaComissao = metaBatida ? comissaoBonus : comissaoBase;
   const comissaoEstimada = useMemo(
-    () => totalVendido * (taxaComissao / 100),
-    [totalVendido, taxaComissao]
+    () => calcularComissaoProgressiva(totalVendido).total,
+    [totalVendido]
   );
+
+  // Calculadora
+  const calcValor = useMemo(() => parseMoeda(calcInput), [calcInput]);
+  const calcResultado = useMemo(() => calcularComissaoProgressiva(calcValor), [calcValor]);
 
   if (loading) {
     return (
@@ -376,7 +407,7 @@ export default function MeuPainelPage() {
             </div>
             <div>
               <h3 className="text-xs font-bold text-neutral-400 uppercase">Comissão Est.</h3>
-              <p className="text-[10px] text-neutral-600">{taxaComissao}% {metaBatida ? "(bônus)" : "(base)"}</p>
+              <p className="text-[10px] text-neutral-600">Progressiva por faixas</p>
             </div>
           </div>
           <p className={`text-3xl font-black ${metaBatida ? "text-green-400" : "text-emerald-400"}`}>
@@ -405,6 +436,137 @@ export default function MeuPainelPage() {
       <div className="mb-8">
         <GraficoComparativoDiario data={chartData} startDate={periodo.inicio} />
       </div>
+
+      {/* CALCULADORA DE COMISSÃO */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
+        <div className="glass-card rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-3 p-6 border-b border-white/5">
+            <div className="p-2.5 bg-green-500/10 rounded-xl border border-green-500/20">
+              <Icon icon="mdi:calculator" className="h-5 w-5 text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white">Calculadora de Comissão</h3>
+              <p className="text-[11px] text-neutral-500">Progressiva por faixas — até R$ 20k: sem comissão</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-5">
+            {/* Input */}
+            <div>
+              <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                Quanto você vendeu no mês?
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-neutral-400">R$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={calcInput}
+                  onChange={(e) => setCalcInput(formatMoeda(e.target.value))}
+                  placeholder="0,00"
+                  className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-3.5 text-lg font-black text-white outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500/30 transition-all placeholder:text-neutral-700"
+                />
+              </div>
+            </div>
+
+            {/* Resultado */}
+            <AnimatePresence mode="wait">
+              {calcValor <= 0 ? (
+                <motion.p key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="text-xs text-neutral-600 italic text-center py-2">
+                  Digite um valor para calcular a comissão
+                </motion.p>
+              ) : calcValor <= 20000 ? (
+                <motion.div key="zero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="rounded-xl p-4 border border-orange-500/20 bg-orange-500/5 flex items-center gap-3">
+                  <Icon icon="mdi:information-outline" className="h-5 w-5 text-orange-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-orange-300">Sem comissão</p>
+                    <p className="text-xs text-neutral-500 mt-0.5">A comissão começa a partir de R$ 20.000,01 vendidos.</p>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="resultado" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="space-y-3">
+                  {/* Breakdown por faixa */}
+                  <div className="space-y-2">
+                    {calcResultado.detalhes.map((d, i) => (
+                      <motion.div
+                        key={d.label}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.06 }}
+                        className="flex items-center justify-between rounded-xl px-4 py-3 border"
+                        style={{ background: `${d.cor}08`, borderColor: `${d.cor}25` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.cor }} />
+                          <div>
+                            <p className="text-xs font-bold text-white">{d.label}</p>
+                            <p className="text-[10px] text-neutral-500">
+                              {d.taxa}% × R$ {d.base.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-black" style={{ color: d.cor }}>
+                          + R$ {d.comissao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Total */}
+                  <div className="rounded-xl p-4 border border-green-500/30 bg-green-500/8 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon icon="mdi:cash-check" className="h-5 w-5 text-green-400" />
+                      <span className="text-sm font-black text-white uppercase tracking-wide">Total de Comissão</span>
+                    </div>
+                    <p className="text-2xl font-black text-green-400">
+                      R$ {calcResultado.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Tabela de referência */}
+            <details className="group">
+              <summary className="text-[11px] text-neutral-600 hover:text-neutral-400 cursor-pointer transition-colors list-none flex items-center gap-1.5">
+                <Icon icon="mdi:chevron-right" className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+                Ver tabela de faixas
+              </summary>
+              <div className="mt-3 rounded-xl overflow-hidden border border-white/5">
+                <table className="w-full text-xs">
+                  <thead className="bg-white/[0.03]">
+                    <tr>
+                      <th className="text-left px-4 py-2.5 text-neutral-500 font-semibold">Faixa</th>
+                      <th className="text-center px-4 py-2.5 text-neutral-500 font-semibold">Taxa</th>
+                      <th className="text-right px-4 py-2.5 text-neutral-500 font-semibold">Máx. nessa faixa</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    <tr className="bg-white/[0.01]">
+                      <td className="px-4 py-2.5 text-neutral-400">Até R$ 20.000</td>
+                      <td className="px-4 py-2.5 text-center text-neutral-600">0%</td>
+                      <td className="px-4 py-2.5 text-right text-neutral-600">R$ 0</td>
+                    </tr>
+                    {FAIXAS_COMISSAO.map((f) => (
+                      <tr key={f.label} className="bg-white/[0.01]">
+                        <td className="px-4 py-2.5 font-bold" style={{ color: f.cor }}>{f.label}</td>
+                        <td className="px-4 py-2.5 text-center font-black" style={{ color: f.cor }}>{f.taxa * 100}%</td>
+                        <td className="px-4 py-2.5 text-right text-neutral-400">
+                          {f.max === Infinity ? "Ilimitado" : `R$ ${((f.max - f.min) * f.taxa).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </div>
+      </motion.div>
 
       {/* ARENA DE BATALHA X1 */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
