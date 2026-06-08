@@ -275,3 +275,41 @@
 .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.4); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* -------------------------------------------------------------------------- */
+/* HOVER-TRIGGERED ICON ANIMATIONS                                             */
+/* All line-md animated icons pause by default; resume when their interactive  */
+/* ancestor is hovered. Use .icon-always to force an icon to always animate.   */
+/* -------------------------------------------------------------------------- */
+
+/* 1. Pause every animated Iconify (line-md set) icon */
+.iconify--line-md,
+.iconify--line-md * {
+  animation-play-state: paused !important;
+}
+
+/* 2. Resume when a link or button ancestor is hovered */
+a:hover .iconify--line-md,
+a:hover .iconify--line-md *,
+button:hover .iconify--line-md,
+button:hover .iconify--line-md * {
+  animation-play-state: running !important;
+}
+
+/* 3. Resume for card icon-badge wrappers on hover */
+[class*="icon-badge"]:hover .iconify--line-md,
+[class*="icon-badge"]:hover .iconify--line-md * {
+  animation-play-state: running !important;
+}
+
+/* 4. Active sidebar nav item — always animate */
+.nav-active .iconify--line-md,
+.nav-active .iconify--line-md * {
+  animation-play-state: running !important;
+}
+
+/* 5. Override: loading spinners and alert icons that must always animate */
+.icon-always,
+.icon-always * {
+  animation-play-state: running !important;
+}

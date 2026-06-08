@@ -107,7 +107,7 @@ export function MaiaBriefing({ show, message, onClose }: MaiaBriefingProps) {
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl flex-shrink-0"
                     style={{ background: `${cfg.cor}1a`, border: `1px solid ${cfg.cor}30` }}>
-                    <Icon icon={cfg.icon} className="h-5 w-5" style={{ color: cfg.cor }} />
+                    <Icon icon={cfg.icon} className="icon-always h-5 w-5" style={{ color: cfg.cor }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-[9px] font-black uppercase tracking-widest block mb-0.5"
@@ -171,7 +171,7 @@ export function MaiaBriefing({ show, message, onClose }: MaiaBriefingProps) {
                     <div className="flex items-center gap-3">
                       <div className="p-3 rounded-2xl flex-shrink-0"
                         style={{ background: `${cfg.cor}18`, border: `1px solid ${cfg.cor}35` }}>
-                        <Icon icon={cfg.icon} className="h-6 w-6" style={{ color: cfg.cor }} />
+                        <Icon icon={cfg.icon} className="icon-always h-6 w-6" style={{ color: cfg.cor }} />
                       </div>
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest block mb-1"

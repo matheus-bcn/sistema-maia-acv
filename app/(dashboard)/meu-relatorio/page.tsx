@@ -220,7 +220,7 @@ export default function MeuRelatorioPage() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center p-10 rounded-xl border border-red-500/20 bg-red-500/5 mb-8 text-center"
           >
-            <Icon icon="line-md:alert-circle-loop" className="h-10 w-10 text-red-400 mb-4" />
+            <Icon icon="line-md:alert-circle-loop" className="icon-always h-10 w-10 text-red-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">Erro ao carregar dados</h3>
             <p className="text-sm text-neutral-400 mb-6">{error}</p>
             <button
@@ -365,7 +365,7 @@ export default function MeuRelatorioPage() {
             {loading || !contextoChat ? (
               <div className="flex items-center justify-center h-[600px] glass-card rounded-xl border border-violet-500/20">
                 <div className="flex flex-col items-center gap-3 text-neutral-400">
-                  <Icon icon="line-md:loading-loop" className="h-8 w-8 text-violet-400" />
+                  <Icon icon="line-md:loading-loop" className="icon-always h-8 w-8 text-violet-400" />
                   <p className="text-sm">Carregando seus dados para M.A.I.A...</p>
                 </div>
               </div>
@@ -411,7 +411,7 @@ export default function MeuRelatorioPage() {
 
               {loadingIA ? (
                 <div className="flex items-center gap-3 text-neutral-400 py-2">
-                  <Icon icon="line-md:loading-loop" className="h-5 w-5 text-violet-400" />
+                  <Icon icon="line-md:loading-loop" className="icon-always h-5 w-5 text-violet-400" />
                   <p className="text-sm font-medium">
                     M.A.I.A está analisando sua performance...
                   </p>

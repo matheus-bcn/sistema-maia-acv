@@ -201,7 +201,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
 
         {error && (
           <div className="flex items-start gap-2 text-sm text-red-400 mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-            <Icon icon="line-md:alert-circle-loop" className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <Icon icon="line-md:alert-circle-loop" className="icon-always h-4 w-4 mt-0.5 flex-shrink-0" />
             <p>{error}</p>
           </div>
         )}
@@ -220,7 +220,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
         >
           {loading ? (
             <>
-              <Icon icon="line-md:loading-loop" className="h-4 w-4" /> M.A.I.A processando relatório...
+              <Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" /> M.A.I.A processando relatório...
             </>
           ) : (
             "Processar e Lançar Vendas"

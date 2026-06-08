@@ -189,7 +189,7 @@ export default function ClientesPage() {
                 style={{ background: "rgba(20,184,166,0.15)", border: "1px solid rgba(20,184,166,0.3)", color: "#2dd4bf" }}
               >
                 {loadingIA ? (
-                  <><Icon icon="line-md:loading-loop" className="h-3.5 w-3.5" /> Analisando...</>
+                  <><Icon icon="line-md:loading-loop" className="icon-always h-3.5 w-3.5" /> Analisando...</>
                 ) : (
                   <><Icon icon="mdi:brain" className="h-3.5 w-3.5" /> Gerar Insights</>
                 )}
@@ -297,7 +297,7 @@ export default function ClientesPage() {
                 <tbody>
                   <tr>
                     <td colSpan={7} className="p-12 text-center">
-                      <Icon icon="line-md:alert-circle-loop" className="h-10 w-10 text-red-400 mx-auto mb-3" />
+                      <Icon icon="line-md:alert-circle-loop" className="icon-always h-10 w-10 text-red-400 mx-auto mb-3" />
                       <p className="text-neutral-400 mb-4">{error}</p>
                       <button onClick={carregarClientes} className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white font-semibold rounded-md border border-white/10 hover:bg-white/20 transition-all text-sm mx-auto">
                         <Icon icon="mdi:reload" className="h-4 w-4" /> Tentar Novamente

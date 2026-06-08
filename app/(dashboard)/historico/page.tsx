@@ -321,7 +321,7 @@ export default function HistoricoPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col items-center justify-center p-6 rounded-xl border border-red-500/20 bg-red-500/5 max-w-lg mx-auto"
                       >
-                        <Icon icon="line-md:alert-circle-loop" className="h-8 w-8 text-red-400 mb-3" />
+                        <Icon icon="line-md:alert-circle-loop" className="icon-always h-8 w-8 text-red-400 mb-3" />
                         <p className="text-sm text-neutral-300 mb-4">{error}</p>
                         <button
                           type="button"
@@ -442,7 +442,7 @@ export default function HistoricoPage() {
               className="glass-card w-full max-w-sm rounded-2xl p-6 border border-red-500/30 bg-neutral-900 text-white space-y-4 shadow-2xl"
             >
               <div className="flex items-center gap-3 text-red-400">
-                <Icon icon="line-md:alert-circle-loop" className="h-6 w-6 flex-shrink-0 text-red-400" />
+                <Icon icon="line-md:alert-circle-loop" className="icon-always h-6 w-6 flex-shrink-0 text-red-400" />
                 <h3 className="text-lg font-black text-white">Limpar Mês Inteiro?</h3>
               </div>
               
@@ -465,7 +465,7 @@ export default function HistoricoPage() {
                   disabled={isDeletingAll}
                   className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-bold text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  {isDeletingAll ? <Icon icon="line-md:loading-loop" className="h-4 w-4" /> : <Icon icon="mdi:trash-can" className="h-4 w-4" />}
+                  {isDeletingAll ? <Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" /> : <Icon icon="mdi:trash-can" className="h-4 w-4" />}
                   {isDeletingAll ? "Excluindo..." : "Sim, apagar tudo"}
                 </button>
               </div>
@@ -484,7 +484,7 @@ export default function HistoricoPage() {
               className="glass-card w-full max-w-sm rounded-2xl p-6 border border-white/20 bg-neutral-900 text-white space-y-4 shadow-2xl"
             >
               <div className="flex items-center gap-3 text-amber-400">
-                <Icon icon="line-md:alert-circle-loop" className="h-6 w-6 flex-shrink-0 text-amber-400" />
+                <Icon icon="line-md:alert-circle-loop" className="icon-always h-6 w-6 flex-shrink-0 text-amber-400" />
                 <h3 className="text-lg font-black text-white">Excluir Venda?</h3>
               </div>
               

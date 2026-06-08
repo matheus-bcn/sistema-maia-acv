@@ -147,7 +147,7 @@ function RankingContent() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center p-10 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-md text-center max-w-2xl mx-auto my-8"
           >
-            <Icon icon="line-md:alert-circle-loop" className="h-10 w-10 text-red-400 mb-4" />
+            <Icon icon="line-md:alert-circle-loop" className="icon-always h-10 w-10 text-red-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">Erro ao processar ranking</h3>
             <p className="text-sm text-neutral-400 mb-6">{error}</p>
             <button

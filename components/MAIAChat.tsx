@@ -243,7 +243,7 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
             className="p-2.5 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
           >
             {loading ? (
-              <Icon icon="line-md:loading-loop" className="h-4 w-4" />
+              <Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" />
             ) : (
               <Icon icon="mdi:send" className="h-4 w-4" />
             )}

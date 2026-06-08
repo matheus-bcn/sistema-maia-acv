@@ -308,7 +308,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {error ? (
           <motion.div key="error" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center p-12 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-md text-center max-w-2xl mx-auto my-10 relative z-10">
-            <Icon icon="line-md:alert-circle-loop" className="h-12 w-12 text-red-400 mb-4" />
+            <Icon icon="line-md:alert-circle-loop" className="icon-always h-12 w-12 text-red-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">Ops! Problema de Permissão</h3>
             <p className="text-sm text-neutral-400 mb-6">{error}</p>
             <button onClick={carregarDados} className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white font-semibold rounded-md border border-white/10 hover:bg-white/20 transition-all text-sm"><Icon icon="mdi:reload" className="h-4 w-4" /> Tentar Novamente</button>

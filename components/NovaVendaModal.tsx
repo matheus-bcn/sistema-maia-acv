@@ -152,7 +152,7 @@ export function NovaVendaModal({ isOpen, onClose, onSuccess }: NovaVendaModalPro
               disabled={loading}
               className="mt-6 w-full rounded-lg bg-white py-3 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
             >
-              {loading ? <Icon icon="line-md:loading-loop" className="h-4 w-4" /> : "Registrar venda"}
+              {loading ? <Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" /> : "Registrar venda"}
             </button>
           </motion.form>
         </div>

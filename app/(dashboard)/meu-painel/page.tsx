@@ -185,7 +185,7 @@ export default function MeuPainelPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
-        <Icon icon="line-md:loading-loop" className="h-10 w-10 text-purple-500" />
+        <Icon icon="line-md:loading-loop" className="icon-always h-10 w-10 text-purple-500" />
       </div>
     );
   }
@@ -367,7 +367,7 @@ export default function MeuPainelPage() {
                   disabled={!colegaSelecionado || loadingBatalha}
                   className="w-full sm:w-1/3 bg-red-500 hover:bg-red-600 text-white font-black py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loadingBatalha ? <Icon icon="line-md:loading-loop" className="h-5 w-5" /> : "Desafiar!"}
+                  {loadingBatalha ? <Icon icon="line-md:loading-loop" className="icon-always h-5 w-5" /> : "Desafiar!"}
                 </button>
               </div>
             </div>
@@ -377,7 +377,7 @@ export default function MeuPainelPage() {
             <div className="p-8 text-center bg-gradient-to-b from-red-500/5 to-transparent">
               {batalha.challenger_id === vendedor.id ? (
                 <>
-                  <Icon icon="line-md:loading-loop" className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                  <Icon icon="line-md:loading-loop" className="icon-always h-12 w-12 text-red-500 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-white mb-2">Desafio Enviado!</h3>
                   <p className="text-neutral-400">Aguardando <strong className="text-white">{oponente.name}</strong> aceitar...</p>
                 </>
