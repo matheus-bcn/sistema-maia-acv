@@ -47,14 +47,15 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete, onViewPan
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className={`glass-card relative rounded-xl p-6 border ${
-        seller.status === "Inativo" ? "opacity-60 border-red-500/20" : "border-white/10"
-      }`}
+      onClick={() => onViewPanel?.()}
+      className={`glass-card relative rounded-xl p-6 border transition-colors ${
+        seller.status === "Inativo" ? "opacity-60 border-red-500/20" : "border-white/10 hover:border-violet-500/30"
+      } ${onViewPanel ? "cursor-pointer" : ""}`}
     >
       {/* MENU DE TRÊS PONTOS */}
-      <div className="absolute top-4 right-4 z-10" ref={menuRef}>
-        <button 
-          type="button" 
+      <div className="absolute top-4 right-4 z-10" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           className="p-1 text-neutral-500 hover:text-white hover:bg-white/10 rounded-md transition-colors"
         >
@@ -156,7 +157,7 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete, onViewPan
 
       <button
         type="button"
-        onClick={() => onToggleStatus(seller.id, seller.status)}
+        onClick={(e) => { e.stopPropagation(); onToggleStatus(seller.id, seller.status); }}
         className={`w-full mt-6 py-2 text-sm font-semibold rounded flex items-center justify-center gap-2 transition-colors ${
           seller.status === "Ativo"
             ? "bg-white/5 hover:bg-red-500/20 hover:text-red-400"

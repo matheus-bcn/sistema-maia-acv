@@ -207,8 +207,18 @@ Regras: titulo máx 6 palavras, mensagem 1-2 frases com dados reais, acao 1 fras
     });
 
     const rawText = completion.choices[0]?.message?.content ?? "";
-    const cleanText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(cleanText);
+    const cleaned = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    let parsed: any[];
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // Extrai o primeiro array JSON encontrado no texto
+      const match = cleaned.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error("Resposta da IA não contém JSON válido.");
+      parsed = JSON.parse(match[0]);
+    }
+
     return { success: true, insights: parsed as any[] };
   } catch (error: any) {
     console.error("Erro analisarClientesAction:", error?.message ?? error);
