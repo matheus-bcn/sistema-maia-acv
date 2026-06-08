@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { PeriodoFilter } from "@/components/PeriodoFilter";
 import { BatalhaX1 } from "@/components/BatalhaX1";
+import { VendedorPainelDrawer } from "@/components/VendedorPainelDrawer";
 import { createClient } from "@/lib/supabase/client";
 import { getSellerRankings } from "@/lib/data/sellers";
-import type { SellerRanking } from "@/types";
+import type { SellerRanking, Seller } from "@/types";
 
 const podiumVariants = {
   hidden: { opacity: 0, y: 100 },
@@ -69,6 +70,7 @@ function RankingContent() {
   const [rankings, setRankings] = useState<SellerRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [painelSeller, setPainelSeller] = useState<Seller | null>(null);
 
   const [periodo, setPeriodo] = useState(() => {
     const now = new Date();
@@ -203,6 +205,7 @@ function RankingContent() {
                       initial="hidden"
                       animate="show"
                       className="flex flex-col items-center group cursor-pointer"
+                      onClick={() => setPainelSeller(r.seller)}
                     >
                       {pos === 1 && <Icon icon="mdi:trophy" className="h-8 w-8 text-yellow-500 mb-2 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />}
                       <div
@@ -250,7 +253,8 @@ function RankingContent() {
                   rest.map((r) => (
                     <div
                       key={r.seller.id}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors cursor-pointer"
+                      onClick={() => setPainelSeller(r.seller)}
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-neutral-500 font-bold w-4 text-center">{r.position}º</span>
@@ -275,6 +279,8 @@ function RankingContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <VendedorPainelDrawer seller={painelSeller} onClose={() => setPainelSeller(null)} />
     </>
   );
 }
