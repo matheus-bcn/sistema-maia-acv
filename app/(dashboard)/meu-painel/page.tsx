@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
+import { TermometroDiasUteis } from "@/components/TermometroDiasUteis";
+import { TermometroRitmo } from "@/components/TermometroRitmo";
 
 export default function MeuPainelPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -159,9 +161,20 @@ export default function MeuPainelPage() {
   const faltaParaMeta = useMemo(() => metaIndividual - totalVendido, [metaIndividual, totalVendido]);
   const ticketMedio = useMemo(() => vendas.length > 0 ? totalVendido / vendas.length : 0, [vendas.length, totalVendido]);
 
-  // CORRIGIDO: Removido o caractere intruso e mapeado o 'diasUteisPassados' corretamente na array de dependências
   const tendenciaFechamento = useMemo(() => (totalVendido / diasUteisPassados) * diasUteisTotais, [totalVendido, diasUteisPassados, diasUteisTotais]);
   const estaAbaixoDaMeta = useMemo(() => tendenciaFechamento < metaIndividual, [tendenciaFechamento, metaIndividual]);
+
+  // Período do mês atual para os termômetros
+  const periodoAtual = useMemo(() => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    return {
+      inicio: `${ano}-${mes}-01`,
+      fim: `${ano}-${mes}-${String(ultimoDia).padStart(2, "0")}`,
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -223,50 +236,36 @@ export default function MeuPainelPage() {
           <p className="text-3xl font-black text-white">R$ {metaIndividual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-white/[0.02] relative overflow-hidden flex flex-col justify-between min-h-[160px]">
-          <div className="absolute top-3 -right-12 bg-purple-500 text-black text-[8px] font-black uppercase tracking-widest py-0.5 px-12 rotate-45 transform shadow-md">
-            IA Predictor
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className={`glass-card rounded-2xl p-6 border flex flex-col justify-between ${faltaParaMeta <= 0 ? "border-purple-500/30 bg-purple-500/5" : "border-white/5 bg-white/[0.02]"}`}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`p-2.5 rounded-lg ${faltaParaMeta <= 0 ? "bg-purple-500/20 text-purple-400" : "bg-orange-500/10 text-orange-400"}`}>
+              <Icon icon={faltaParaMeta <= 0 ? "mdi:check-circle" : "mdi:flag-checkered"} className="h-5 w-5" />
+            </div>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase">{faltaParaMeta <= 0 ? "Meta Batida!" : "Falta para Meta"}</h3>
           </div>
-          <div>
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Status da Meta</h3>
-            <p className="text-3xl font-black text-white">{progresso.toFixed(1)}%</p>
-            <p className="text-[9px] text-neutral-500 uppercase font-bold tracking-widest">Realizado até hoje</p>
-          </div>
-          <div className="bg-black/40 rounded-xl p-3 border border-white/5 mt-3">
-            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest block mb-0.5">Projeção de Fechamento</span>
-            <p className="text-lg font-black text-white">R$ {tendenciaFechamento.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
-            <p className={`text-[10px] font-bold mt-1 flex items-center gap-1 ${estaAbaixoDaMeta ? "text-red-400" : "text-purple-400"}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${estaAbaixoDaMeta ? "bg-red-500 animate-pulse" : "bg-purple-500"}`} />
-              {estaAbaixoDaMeta ? "Tendência abaixo da meta" : "Tendência dentro da meta!"}
-            </p>
-          </div>
+          {faltaParaMeta > 0 ? (
+            <p className="text-3xl font-black text-white">R$ {faltaParaMeta.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
+          ) : (
+            <p className="text-3xl font-black text-purple-400">+R$ {Math.abs(faltaParaMeta).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
+          )}
         </motion.div>
       </div>
 
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="glass-card rounded-2xl p-8 border border-white/10 bg-white/[0.02] mb-8 relative overflow-hidden">
-        <div className="flex justify-between items-end mb-4 relative z-10">
-          <div>
-            <h3 className="text-xl font-bold flex items-center gap-2"><Icon icon="mdi:target" className="h-6 w-6 text-purple-400" /> Corrida para a Meta</h3>
-            {faltaParaMeta > 0 ? (
-              <p className="text-neutral-400 text-sm mt-1">Faltam <strong className="text-white">R$ {faltaParaMeta.toLocaleString("pt-BR")}</strong> para bater a meta!</p>
-            ) : (
-              <p className="text-purple-400 text-sm mt-1 font-bold">🎉 Parabéns! Você bateu a sua meta individual!</p>
-            )}
-          </div>
-          <span className="text-5xl font-black text-white">{progresso.toFixed(1)}%</span>
-        </div>
-        
-        <div className="h-6 w-full bg-black/50 rounded-full overflow-hidden border border-white/10 relative z-10">
-          <motion.div 
-            initial={{ width: 0 }} 
-            animate={{ width: `${progresso}%` }} 
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            className={`h-full ${progresso >= 100 ? 'bg-purple-500' : 'bg-gradient-to-r from-purple-600 to-purple-400'} relative`}
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:20px_20px] animate-[shimmer_1s_infinite_linear]" />
-          </motion.div>
-        </div>
-      </motion.div>
+      {/* TERMÔMETROS DE META */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <TermometroDiasUteis
+          meta={metaIndividual}
+          faturado={totalVendido}
+          inicio={periodoAtual.inicio}
+          fim={periodoAtual.fim}
+        />
+        <TermometroRitmo
+          meta={metaIndividual}
+          faturado={totalVendido}
+          inicio={periodoAtual.inicio}
+          fim={periodoAtual.fim}
+        />
+      </div>
 
       {/* ARENA DE BATALHA X1 */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">

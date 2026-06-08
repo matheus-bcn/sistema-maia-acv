@@ -24,11 +24,16 @@ const ADMIN_MAIS = [
 ];
 
 const USER_TABS = [
-  { nome: "Painel",      caminho: "/meu-painel",    icone: "line-md:account",             cor: "#f97316" },
-  { nome: "Ranking",     caminho: "/ranking",        icone: "mdi:trophy",                  cor: "#facc15" },
-  { nome: "Relatório",   caminho: "/meu-relatorio",  icone: "mdi:chart-bar",               cor: "#a78bfa" },
-  { nome: "Calendário",  caminho: "/calendario",     icone: "line-md:calendar",            cor: "#2dd4bf" },
-  { nome: "Premiações",  caminho: "/premiacoes",     icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
+  { nome: "Painel",     caminho: "/meu-painel",   icone: "line-md:account",   cor: "#f97316" },
+  { nome: "Ranking",    caminho: "/ranking",       icone: "mdi:trophy",        cor: "#facc15" },
+  { nome: "Relatório",  caminho: "/meu-relatorio", icone: "mdi:chart-bar",     cor: "#a78bfa" },
+  { nome: "Calendário", caminho: "/calendario",    icone: "line-md:calendar",  cor: "#2dd4bf" },
+  { nome: "Mais",       caminho: "__mais__",        icone: "line-md:grid-3",    cor: "#94a3b8" },
+];
+
+const USER_MAIS = [
+  { nome: "Premiações", caminho: "/premiacoes", icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
+  { nome: "Clientes",   caminho: "/clientes",   icone: "mdi:account-multiple",        cor: "#2dd4bf" },
 ];
 
 export function BottomNav() {
@@ -75,8 +80,8 @@ export function BottomNav() {
             className="fixed bottom-20 left-3 right-3 z-50 md:hidden rounded-2xl overflow-hidden"
             style={{ background: "rgba(13,17,23,0.97)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <div className="p-2 grid grid-cols-5 gap-1">
-              {ADMIN_MAIS.map((item) => {
+            <div className={`p-2 grid gap-1 ${isAdmin ? "grid-cols-5" : "grid-cols-2"}`}>
+              {(isAdmin ? ADMIN_MAIS : USER_MAIS).map((item) => {
                 const ativo = pathname === item.caminho;
                 return (
                   <Link

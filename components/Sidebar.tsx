@@ -101,6 +101,7 @@ export function Sidebar() {
     { nome: "Relatório",   caminho: "/meu-relatorio", icone: "mdi:chart-bar" },
     { nome: "Calendário",  caminho: "/calendario",    icone: "line-md:calendar" },
     { nome: "Premiações",  caminho: "/premiacoes",    icone: "line-md:star-pulsating-loop" },
+    { nome: "Clientes",    caminho: "/clientes",      icone: "mdi:account-multiple" },
   ];
 
   return (

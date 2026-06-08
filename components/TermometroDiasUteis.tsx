@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Gauge } from 'lucide-react';
+import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 
 interface TermometroDiasUteisProps {
@@ -41,10 +41,8 @@ export function TermometroDiasUteis({ meta, faturado, inicio, fim }: TermometroD
     const dataInicio = parseLocalDate(inicio);
     const dataFim = parseLocalDate(fim);
 
-    // Total de dias úteis no período selecionado
     const totalBusinessDays = countBusinessDays(dataInicio, dataFim);
 
-    // Dias úteis decorridos: do início até hoje (ou até o fim se o período já terminou)
     const limiteAtual = hoje <= dataFim ? hoje : dataFim;
     const businessDaysPassed = limiteAtual >= dataInicio
       ? countBusinessDays(dataInicio, limiteAtual)
@@ -118,7 +116,7 @@ export function TermometroDiasUteis({ meta, faturado, inicio, fim }: TermometroD
       <div className="flex justify-between items-start z-10 relative mb-2">
         <div className="flex items-center gap-3">
           <div className={`p-2.5 rounded-lg border border-white/10 bg-white/5 ${colorClass} ${mounted ? neonGlow : ''}`}>
-            <Gauge className="w-5 h-5" />
+            <Icon icon="mdi:gauge" className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Termômetro Útil</h3>
