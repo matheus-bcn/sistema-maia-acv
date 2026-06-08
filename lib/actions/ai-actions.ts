@@ -170,7 +170,7 @@ export async function analisarClientesAction(dados: {
   novos: { nome: string; totalGasto: number; ticketMedio: number }[];
 }) {
   if (!process.env.GROQ_API_KEY) {
-    return { success: false, error: "GROQ_API_KEY não configurada." };
+    return { success: false, error: "Chave GROQ_API_KEY não configurada no servidor. Adicione-a nas variáveis de ambiente do projeto." };
   }
 
   try {
@@ -209,20 +209,30 @@ Regras: titulo máx 6 palavras, mensagem 1-2 frases com dados reais, acao 1 fras
     const rawText = completion.choices[0]?.message?.content ?? "";
     const cleaned = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
 
-    let parsed: any[];
+    let parsed: any;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      // Extrai o primeiro array JSON encontrado no texto
-      const match = cleaned.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error("Resposta da IA não contém JSON válido.");
+      const match = cleaned.match(/\[[\s\S]*?\]/);
+      if (!match) throw new Error("Resposta da IA não continha JSON. Tente novamente.");
       parsed = JSON.parse(match[0]);
     }
 
-    return { success: true, insights: parsed as any[] };
+    // Aceita array direto ou objeto com chave "insights"
+    const insights: any[] = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.insights)
+      ? parsed.insights
+      : null;
+
+    if (!insights || insights.length === 0) {
+      throw new Error("A IA retornou uma estrutura inesperada. Tente novamente.");
+    }
+
+    return { success: true, insights };
   } catch (error: any) {
     console.error("Erro analisarClientesAction:", error?.message ?? error);
-    return { success: false, error: "Falha ao gerar insights de clientes." };
+    return { success: false, error: error?.message ?? "Falha ao gerar insights de clientes." };
   }
 }
 
