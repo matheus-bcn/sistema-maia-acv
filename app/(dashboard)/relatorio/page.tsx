@@ -13,6 +13,7 @@ import {
   Sparkles,
   Loader2,
 } from "lucide-react";
+import { PeriodoFilter } from "@/components/PeriodoFilter";
 import { createClient } from "@/lib/supabase/client";
 import { getDashboardStats } from "@/lib/data/dashboard";
 import { getSellerRankings, getSellerDiagnostics } from "@/lib/data/sellers";
@@ -151,23 +152,11 @@ export default function RelatorioPage() {
           <p className="text-neutral-400 mt-1">Insights baseados em dados reais da equipe</p>
         </div>
 
-        {/* P0 - Componente de Filtro de Data */}
-        <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-3 py-1.5 rounded-md backdrop-blur-md w-max">
-          <span className="text-xs text-neutral-400 font-medium uppercase">Período:</span>
-          <input 
-            type="date" 
-            value={periodo.inicio}
-            onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))}
-            className="bg-transparent text-sm font-semibold outline-none text-white cursor-pointer invert-[0.8] brightness-200"
-          />
-          <span className="text-neutral-600">até</span>
-          <input 
-            type="date" 
-            value={periodo.fim}
-            onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))}
-            className="bg-transparent text-sm font-semibold outline-none text-white cursor-pointer invert-[0.8] brightness-200"
-          />
-        </div>
+        <PeriodoFilter
+          inicio={periodo.inicio}
+          fim={periodo.fim}
+          onChange={(inicio, fim) => setPeriodo({ inicio, fim })}
+        />
       </header>
 
       <AnimatePresence mode="wait">

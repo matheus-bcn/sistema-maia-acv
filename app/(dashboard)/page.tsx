@@ -42,6 +42,7 @@ interface MaiaInsight {
   titulo: string;
   briefing: string;
   acao: string;
+  tipo?: "ALERTA" | "PARABENS" | "DICA" | "NEUTRO";
 }
 
 const containerVariants: Variants = {
@@ -159,17 +160,13 @@ export default function Home() {
 
       if (cachedIA) {
         const { timestamp, data: cachedData } = JSON.parse(cachedIA);
-        // Calcula quantas horas se passaram desde o último insight
-        const hoursPassed = (Date.now() - timestamp) / (1000 * 60 * 60);
-        
-        // Se passou MENOS de 2 horas, usa o insight guardado no Cache do Navegador
-        if (hoursPassed < 2) {
+        const minutesPassed = (Date.now() - timestamp) / (1000 * 60);
+        if (minutesPassed < 30) {
           setMensagemIA(cachedData);
           shouldFetchAI = false;
         }
       }
 
-      // Só bate na API do Gemini se o cache expirou (passou de 2h) ou se for a primeira vez
       if (shouldFetchAI) {
         const briefingIA = await obterBriefingIAAction(stats);
 
@@ -177,7 +174,8 @@ export default function Home() {
           const aiPayload: MaiaInsight = {
             titulo: briefingIA.titulo,
             briefing: briefingIA.briefing,
-            acao: briefingIA.acao
+            acao: briefingIA.acao,
+            tipo: briefingIA.tipo as any,
           };
           
           setMensagemIA(aiPayload);
@@ -271,18 +269,18 @@ export default function Home() {
             </button>
             <AnimatePresence>
               {isDatePickerOpen && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-72 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-4">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-72 rounded-2xl p-4 shadow-2xl z-50 flex flex-col gap-4" style={{background:"rgba(10,12,20,0.97)",border:"1px solid rgba(255,255,255,0.10)",backdropFilter:"blur(24px)"}}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-bold text-white">Selecionar Período</span>
                     <button onClick={() => setIsDatePickerOpen(false)} className="text-neutral-500 hover:text-white"><X className="h-4 w-4" /></button>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-neutral-400 uppercase font-semibold">Data Inicial</label>
-                    <input type="date" value={periodo.inicio} onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 invert-[0.8] brightness-200" />
+                    <input type="date" value={periodo.inicio} onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))} className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none cursor-pointer [color-scheme:dark] bg-white/5 border border-white/10 focus:border-violet-500/50" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-neutral-400 uppercase font-semibold">Data Final</label>
-                    <input type="date" value={periodo.fim} onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 invert-[0.8] brightness-200" />
+                    <input type="date" value={periodo.fim} onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))} className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none cursor-pointer [color-scheme:dark] bg-white/5 border border-white/10 focus:border-violet-500/50" />
                   </div>
                 </motion.div>
               )}

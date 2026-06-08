@@ -2,19 +2,20 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  History, 
-  Search, 
-  Calendar as CalendarIcon, 
-  Filter, 
-  ArrowDownToLine, 
-  AlertCircle, 
+import {
+  History,
+  Search,
+  Calendar as CalendarIcon,
+  Filter,
+  ArrowDownToLine,
+  AlertCircle,
   RefreshCw,
   FileSpreadsheet,
   X,
   Trash2,
   Trash
 } from "lucide-react";
+import { DATE_INPUT_CLASS } from "@/components/PeriodoFilter";
 import { createClient } from "@/lib/supabase/client";
 import { listSales } from "@/lib/data/sales";
 import { deleteSaleAction, deleteAllSalesAction } from "@/lib/actions/sales"; 
@@ -184,8 +185,8 @@ export default function HistoricoPage() {
         </div>
       </header>
 
-      <div className="glass-card rounded-xl p-4 mb-6 border border-white/5 flex flex-wrap gap-4 items-center bg-white/[0.02] relative z-20">
-        <div className="relative flex-1 min-w-[250px]">
+      <div className="glass-card rounded-xl p-4 mb-6 border border-white/5 flex flex-col md:flex-row gap-3 md:items-center bg-white/[0.02] relative z-20">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
           <input
             type="text"
@@ -217,7 +218,7 @@ export default function HistoricoPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute right-0 sm:left-0 top-full mt-2 w-64 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-3"
+                className="absolute right-0 sm:left-0 top-full mt-2 w-64 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-3" style={{background:"rgba(10,12,20,0.97)",border:"1px solid rgba(255,255,255,0.1)",backdropFilter:"blur(20px)"}}
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-sm font-bold text-white">Período</span>
@@ -231,7 +232,7 @@ export default function HistoricoPage() {
                     type="date" 
                     value={periodo.inicio}
                     onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))}
-                    className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 cursor-pointer invert-[0.8] brightness-200"
+                    className={DATE_INPUT_CLASS}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -240,7 +241,7 @@ export default function HistoricoPage() {
                     type="date" 
                     value={periodo.fim}
                     onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))}
-                    className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 cursor-pointer invert-[0.8] brightness-200"
+                    className={DATE_INPUT_CLASS}
                   />
                 </div>
               </motion.div>
