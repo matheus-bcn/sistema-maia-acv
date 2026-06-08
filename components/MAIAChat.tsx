@@ -63,15 +63,18 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
 
       try {
         const resultado = await chatComMAIAAction(trimmed, contexto, historico);
+        let conteudo: string;
+        if (resultado.success && resultado.resposta) {
+          conteudo = resultado.resposta;
+        } else if (resultado.error?.includes("GEMINI_API_KEY")) {
+          conteudo =
+            "⚠️ A chave da IA não está configurada. Acesse o Vercel → Settings → Environment Variables e adicione a variável GEMINI_API_KEY com sua chave do Google AI Studio.";
+        } else {
+          conteudo = resultado.error ?? "Não foi possível processar sua pergunta. Tente novamente.";
+        }
         setMensagens((prev) => [
           ...prev,
-          {
-            id: `m-${Date.now()}`,
-            role: "model",
-            content: resultado.success && resultado.resposta
-              ? resultado.resposta
-              : "Desculpe, não consegui processar sua pergunta. Tente novamente.",
-          },
+          { id: `m-${Date.now()}`, role: "model", content: conteudo },
         ]);
       } catch {
         setMensagens((prev) => [
