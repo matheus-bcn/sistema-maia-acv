@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { PeriodoFilter } from "@/components/PeriodoFilter";
+import { ClienteDrawer } from "@/components/ClienteDrawer";
 import { createClient } from "@/lib/supabase/client";
 import { getCustomerStats } from "@/lib/data/customers";
 import { analisarClientesAction } from "@/lib/actions/ai-actions";
@@ -46,6 +47,7 @@ export default function ClientesPage() {
   const [insights, setInsights] = useState<any[]>([]);
   const [loadingIA, setLoadingIA] = useState(false);
   const [insightsGerados, setInsightsGerados] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState<CustomerStats | null>(null);
 
   const [periodo, setPeriodo] = useState(() => {
     const now = new Date();
@@ -337,7 +339,8 @@ export default function ClientesPage() {
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.02 }}
-                        className="hover:bg-white/[0.03] transition-colors"
+                        className="hover:bg-white/[0.05] transition-colors cursor-pointer"
+                        onClick={() => setClienteSelecionado(c)}
                       >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
@@ -397,9 +400,15 @@ export default function ClientesPage() {
       {/* Footer count */}
       {!loading && clientesFiltrados.length > 0 && (
         <p className="text-xs text-neutral-600 text-center mt-4">
-          Mostrando {clientesFiltrados.length} de {clientes.length} clientes · período {periodo.inicio.split("-").reverse().join("/")} a {periodo.fim.split("-").reverse().join("/")}
+          Mostrando {clientesFiltrados.length} de {clientes.length} clientes · clique em uma linha para ver o perfil completo
         </p>
       )}
+
+      {/* Drawer de perfil */}
+      <ClienteDrawer
+        cliente={clienteSelecionado}
+        onClose={() => setClienteSelecionado(null)}
+      />
     </div>
   );
 }

@@ -18,7 +18,8 @@ import {
   Trash2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getTeamGoal, getIndividualBaseGoal } from "@/lib/data/goals";
+import { getTeamGoal, getIndividualBaseGoal, getAllSellerGoals, upsertSellerGoal } from "@/lib/data/goals";
+import { listSellers } from "@/lib/data/sellers";
 
 // --- Utilitários de Moeda ---
 const formatCurrency = (val: string | number) => {
@@ -56,6 +57,11 @@ export default function ConfiguracaoPage() {
   // Estados de Metas
   const [metaEquipe, setMetaEquipe] = useState("0,00");
   const [metaIndividual, setMetaIndividual] = useState("0,00");
+  const [metasVendedores, setMetasVendedores] = useState<{ id: string; name: string; value: string }[]>([]);
+
+  // Estados de Comissão
+  const [comissaoBase, setComissaoBase] = useState("2,50");
+  const [comissaoBonus, setComissaoBonus] = useState("4,00");
 
   // Estados de Premiações
   const [premiacoes, setPremiacoes] = useState<{ id: string; titulo: string; descricao: string; valor: string }[]>([]);
@@ -69,12 +75,38 @@ export default function ConfiguracaoPage() {
       // 1. CARREGAMENTO DE METAS
       let team = 0;
       let ind = 0;
-      
+
       try { team = await getTeamGoal(supabase); } catch (e) {}
       try { ind = await getIndividualBaseGoal(supabase); } catch (e) {}
 
       setMetaEquipe(formatCurrency(team || 0));
       setMetaIndividual(formatCurrency(ind || 0));
+
+      // 1c. Taxas de comissão
+      try {
+        const { data: settings } = await supabase
+          .from("company_settings")
+          .select("commission_rate, commission_rate_bonus")
+          .maybeSingle();
+        if (settings?.commission_rate != null) {
+          setComissaoBase(String(Number(settings.commission_rate)).replace(".", ","));
+          setComissaoBonus(String(Number(settings.commission_rate_bonus ?? 4)).replace(".", ","));
+        }
+      } catch (e) {}
+
+      // 1b. Metas por vendedor
+      try {
+        const [sellers, sellerGoalsMap] = await Promise.all([
+          listSellers(supabase, "Ativo"),
+          getAllSellerGoals(supabase),
+        ]);
+        const ativos = sellers.filter((s: any) => !s.is_admin);
+        setMetasVendedores(ativos.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          value: formatCurrency(sellerGoalsMap[s.id] ?? ind ?? 25000),
+        })));
+      } catch (e) {}
 
       // 2. BUSCA DE PRÊMIOS
       try {
@@ -126,26 +158,42 @@ export default function ConfiguracaoPage() {
   const salvarMetas = async () => {
     setSaving(true);
     setFeedback(null);
-    
+
     const teamNum = parseCurrency(metaEquipe);
     const indNum = parseCurrency(metaIndividual);
 
     try {
       const date = new Date();
-      const monthYearStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+      const monthYearStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 
+      // Metas globais
       const { data: existingTeam } = await supabase.from("goals").select("id").eq("type", "equipe").eq("month_year", monthYearStr).limit(1).maybeSingle();
       if (existingTeam?.id) {
         await supabase.from("goals").update({ target_value: teamNum }).eq("id", existingTeam.id);
       } else {
-        await supabase.from("goals").insert({ type: "equipe", target_value: teamNum, month_year: monthYearStr });
+        await supabase.from("goals").insert({ type: "equipe", target_value: teamNum, seller_id: null, month_year: monthYearStr });
       }
 
-      const { data: existingInd } = await supabase.from("goals").select("id").eq("type", "individual").eq("month_year", monthYearStr).limit(1).maybeSingle();
+      const { data: existingInd } = await supabase.from("goals").select("id").eq("type", "individual").is("seller_id", null).eq("month_year", monthYearStr).limit(1).maybeSingle();
       if (existingInd?.id) {
         await supabase.from("goals").update({ target_value: indNum }).eq("id", existingInd.id);
       } else {
-        await supabase.from("goals").insert({ type: "individual", target_value: indNum, month_year: monthYearStr });
+        await supabase.from("goals").insert({ type: "individual", target_value: indNum, seller_id: null, month_year: monthYearStr });
+      }
+
+      // Metas individuais por vendedor
+      await Promise.all(
+        metasVendedores.map((v) => upsertSellerGoal(supabase, v.id, parseCurrency(v.value)))
+      );
+
+      // Taxas de comissão
+      const rateBase = parseFloat(comissaoBase.replace(",", ".")) || 2.5;
+      const rateBonus = parseFloat(comissaoBonus.replace(",", ".")) || 4.0;
+      const { data: existingSettings } = await supabase.from("company_settings").select("id").limit(1).maybeSingle();
+      if (existingSettings?.id) {
+        await supabase.from("company_settings").update({ commission_rate: rateBase, commission_rate_bonus: rateBonus }).eq("id", existingSettings.id);
+      } else {
+        await supabase.from("company_settings").insert({ commission_rate: rateBase, commission_rate_bonus: rateBonus });
       }
 
       setFeedback({ type: "success", message: "Metas salvas com sucesso!" });
@@ -288,52 +336,137 @@ export default function ConfiguracaoPage() {
 
       <div className="min-h-[400px]">
         {abaAtiva === "metas" && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            {loading ? (
-              <>
-                <SkeletonInput />
-                <SkeletonInput />
-              </>
-            ) : (
-              <>
-                <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
-                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-purple-400" />
-                    Meta Global da Equipe
-                  </h3>
-                  <label className="text-xs font-bold text-neutral-500 uppercase">Valor Mensal (R$)</label>
-                  <div className="relative mt-2">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-neutral-500">R$</span>
-                    <input
-                      type="text"
-                      value={metaEquipe}
-                      onChange={handleMetaEquipeChange}
-                      className="w-full bg-black/50 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-xl font-black text-purple-400 outline-none focus:ring-2 focus:ring-white/20"
-                    />
+          <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {loading ? (
+                <>
+                  <SkeletonInput />
+                  <SkeletonInput />
+                </>
+              ) : (
+                <>
+                  <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-purple-400" />
+                      Meta Global da Equipe
+                    </h3>
+                    <label className="text-xs font-bold text-neutral-500 uppercase">Valor Mensal (R$)</label>
+                    <div className="relative mt-2">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-neutral-500">R$</span>
+                      <input
+                        type="text"
+                        value={metaEquipe}
+                        onChange={handleMetaEquipeChange}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-xl font-black text-purple-400 outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
-                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-blue-400" />
-                    Meta Individual Base
-                  </h3>
-                  <label className="text-xs font-bold text-neutral-500 uppercase">Valor Mensal (R$)</label>
-                  <div className="relative mt-2">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-neutral-500">R$</span>
-                    <input
-                      type="text"
-                      value={metaIndividual}
-                      onChange={handleMetaIndividualChange}
-                      className="w-full bg-black/50 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-xl font-black text-blue-400 outline-none focus:ring-2 focus:ring-white/20"
-                    />
+                  <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-blue-400" />
+                      Meta Individual Base
+                    </h3>
+                    <p className="text-xs text-neutral-500 mb-4">Usada como padrão para vendedores sem meta personalizada.</p>
+                    <label className="text-xs font-bold text-neutral-500 uppercase">Valor Mensal (R$)</label>
+                    <div className="relative mt-2">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-neutral-500">R$</span>
+                      <input
+                        type="text"
+                        value={metaIndividual}
+                        onChange={handleMetaIndividualChange}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-xl font-black text-blue-400 outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Metas por vendedor */}
+            {!loading && metasVendedores.length > 0 && (
+              <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
+                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                  <Medal className="h-5 w-5 text-orange-400" />
+                  Metas por Vendedor
+                </h3>
+                <p className="text-xs text-neutral-500 mb-6">Defina uma meta personalizada para cada vendedor. Deixe igual à base para usar o padrão.</p>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {metasVendedores.map((v) => (
+                    <div key={v.id} className="flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-black/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="h-7 w-7 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center text-xs font-black border border-orange-500/30 flex-shrink-0">
+                          {v.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-bold text-white truncate">{v.name.split(" ")[0]}</span>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500">R$</span>
+                        <input
+                          type="text"
+                          value={v.value}
+                          onChange={(e) => {
+                            const formatted = formatCurrency(e.target.value);
+                            setMetasVendedores((prev) => prev.map((x) => x.id === v.id ? { ...x, value: formatted } : x));
+                          }}
+                          className="w-full bg-black/50 border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-sm font-black text-orange-400 outline-none focus:ring-2 focus:ring-orange-500/30"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Taxas de Comissão */}
+            {!loading && (
+              <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
+                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-400" />
+                  Taxas de Comissão
+                </h3>
+                <p className="text-xs text-neutral-500 mb-6">Percentual sobre faturamento. Base: vendas normais. Bônus: ao bater a meta.</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-black/30">
+                    <label className="text-xs font-bold text-neutral-400 uppercase">Taxa Base (%)</label>
+                    <p className="text-[11px] text-neutral-600">Aplicada sobre todo o faturamento do mês.</p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={comissaoBase}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9,]/g, "");
+                          setComissaoBase(v);
+                        }}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 pr-9 py-2.5 text-sm font-black text-green-400 outline-none focus:ring-2 focus:ring-green-500/30"
+                        placeholder="2,50"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500">%</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-black/30">
+                    <label className="text-xs font-bold text-neutral-400 uppercase">Taxa Bônus (%)</label>
+                    <p className="text-[11px] text-neutral-600">Aplicada quando o vendedor bate ou supera a meta.</p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={comissaoBonus}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9,]/g, "");
+                          setComissaoBonus(v);
+                        }}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 pr-9 py-2.5 text-sm font-black text-emerald-400 outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        placeholder="4,00"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500">%</span>
+                    </div>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
-        
+
         {abaAtiva === "premiacoes" && (
           <div className="space-y-6">
             <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.02] space-y-4">

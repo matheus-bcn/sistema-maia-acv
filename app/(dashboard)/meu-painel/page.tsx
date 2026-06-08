@@ -8,6 +8,8 @@ import { TermometroDiasUteis } from "@/components/TermometroDiasUteis";
 import { TermometroRitmo } from "@/components/TermometroRitmo";
 import { GraficoComparativoDiario } from "@/components/GraficoComparativoDiario";
 import { getDailyComparisonData } from "@/lib/data/sales";
+import { getSellerGoal } from "@/lib/data/goals";
+import { enviarDesafioAction, finalizarBatalhaAction } from "@/lib/actions/battles";
 
 function getInitialPeriodo() {
   const hoje = new Date();
@@ -32,6 +34,10 @@ export default function MeuPainelPage() {
   const [periodo, setPeriodo] = useState(getInitialPeriodo);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
+  // Comissão
+  const [comissaoBase, setComissaoBase] = useState(2.5);
+  const [comissaoBonus, setComissaoBonus] = useState(4.0);
+
   // Estados da Batalha X1
   const [colegas, setColegas] = useState<any[]>([]);
   const [colegaSelecionado, setColegaSelecionado] = useState("");
@@ -39,6 +45,7 @@ export default function MeuPainelPage() {
   const [oponente, setOponente] = useState<any>(null);
   const [oponenteTotal, setOponenteTotal] = useState(0);
   const [loadingBatalha, setLoadingBatalha] = useState(false);
+  const [historicoBatalhas, setHistoricoBatalhas] = useState<any[]>([]);
 
   const { diasUteisPassados, diasUteisTotais } = useMemo(() => {
     const hoje = new Date();
@@ -72,18 +79,20 @@ export default function MeuPainelPage() {
       if (sellerData) {
         setVendedor(sellerData);
 
-        const { data: goalData } = await supabase
-          .from("goals")
-          .select("target_value")
-          .eq("type", "individual")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const meta = goalData?.target_value
-          ? Number(goalData.target_value)
-          : Number(sellerData.meta) || Number(sellerData.goal) || 25000;
+        const meta = await getSellerGoal(supabase, sellerData.id);
         setMetaIndividual(meta);
+
+        // Taxas de comissão da empresa
+        try {
+          const { data: settings } = await supabase
+            .from("company_settings")
+            .select("commission_rate, commission_rate_bonus")
+            .maybeSingle();
+          if (settings?.commission_rate != null) {
+            setComissaoBase(Number(settings.commission_rate));
+            setComissaoBonus(Number(settings.commission_rate_bonus ?? 4));
+          }
+        } catch (e) {}
 
         // Vendas do período selecionado
         const { data: salesData } = await supabase
@@ -94,6 +103,34 @@ export default function MeuPainelPage() {
           .lte("sale_date", `${periodo.fim}T23:59:59`);
 
         setVendas(salesData || []);
+
+        // Alerta automático: meta em risco (dia > 15 e < 60% da meta)
+        try {
+          const hoje = new Date();
+          if (hoje.getDate() > 15 && meta > 0) {
+            const totalAtual = (salesData || []).reduce((sum: number, v: any) => sum + Number(v.amount), 0);
+            const progAtual = totalAtual / meta;
+            if (progAtual < 0.6) {
+              const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+              const { data: jaNotificou } = await supabase
+                .from("notifications")
+                .select("id")
+                .eq("seller_id", sellerData.id)
+                .eq("type", "meta_em_risco")
+                .gte("created_at", `${mesAtual}-01T00:00:00`)
+                .limit(1)
+                .maybeSingle();
+              if (!jaNotificou) {
+                await supabase.from("notifications").insert({
+                  seller_id: sellerData.id,
+                  type: "meta_em_risco",
+                  title: "Meta em Risco!",
+                  message: `Você atingiu apenas ${Math.round(progAtual * 100)}% da sua meta e já passamos do meio do mês. Acelere as vendas!`,
+                });
+              }
+            }
+          }
+        } catch (e) {}
 
         // Gráfico comparativo diário (seller específico)
         const comparativo = await getDailyComparisonData(supabase, periodo.inicio, periodo.fim, sellerData.id);
@@ -136,6 +173,16 @@ export default function MeuPainelPage() {
             .neq("id", sellerData.id);
           setColegas(colegasData || []);
         }
+
+        // Histórico de batalhas encerradas / recusadas
+        const { data: historico } = await supabase
+          .from("x1_battles")
+          .select("*, challenger:sellers!x1_battles_challenger_id_fkey(name), challenged:sellers!x1_battles_challenged_id_fkey(name), winner:sellers!x1_battles_winner_id_fkey(name)")
+          .or(`challenger_id.eq.${sellerData.id},challenged_id.eq.${sellerData.id}`)
+          .in("status", ["finalizado", "recusado"])
+          .order("created_at", { ascending: false })
+          .limit(5);
+        setHistoricoBatalhas(historico || []);
       }
     } catch (error) {
       console.error("Erro ao carregar painel:", error);
@@ -151,11 +198,7 @@ export default function MeuPainelPage() {
   const enviarDesafio = async () => {
     if (!colegaSelecionado) return;
     setLoadingBatalha(true);
-    await supabase.from("x1_battles").insert({
-      challenger_id: vendedor.id,
-      challenged_id: colegaSelecionado,
-      status: "pendente",
-    });
+    await enviarDesafioAction(vendedor.id, colegaSelecionado);
     await carregarMeuPainel();
     setLoadingBatalha(false);
   };
@@ -164,6 +207,14 @@ export default function MeuPainelPage() {
     if (!batalha) return;
     setLoadingBatalha(true);
     await supabase.from("x1_battles").update({ status: novoStatus }).eq("id", batalha.id);
+    await carregarMeuPainel();
+    setLoadingBatalha(false);
+  };
+
+  const finalizarBatalha = async () => {
+    if (!batalha || !vendedor) return;
+    setLoadingBatalha(true);
+    await finalizarBatalhaAction(batalha.id, vendedor.id, totalVendido, oponenteTotal);
     await carregarMeuPainel();
     setLoadingBatalha(false);
   };
@@ -180,6 +231,13 @@ export default function MeuPainelPage() {
   const estaAbaixoDaMeta = useMemo(
     () => tendenciaFechamento < metaIndividual,
     [tendenciaFechamento, metaIndividual]
+  );
+
+  const metaBatida = progresso >= 100;
+  const taxaComissao = metaBatida ? comissaoBonus : comissaoBase;
+  const comissaoEstimada = useMemo(
+    () => totalVendido * (taxaComissao / 100),
+    [totalVendido, taxaComissao]
   );
 
   if (loading) {
@@ -272,7 +330,7 @@ export default function MeuPainelPage() {
       </header>
 
       {/* CARDS DE STATS */}
-      <div className="grid gap-6 md:grid-cols-4 mb-8">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2.5 bg-purple-500/20 rounded-lg text-purple-400"><Icon icon="mdi:currency-usd" className="h-5 w-5" /></div>
@@ -309,6 +367,21 @@ export default function MeuPainelPage() {
           ) : (
             <p className="text-3xl font-black text-purple-400">+R$ {Math.abs(faltaParaMeta).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
           )}
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className={`glass-card rounded-2xl p-6 border flex flex-col justify-between ${metaBatida ? "border-green-500/30 bg-green-500/5" : "border-white/5 bg-white/[0.02]"}`}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`p-2.5 rounded-lg ${metaBatida ? "bg-green-500/20 text-green-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+              <Icon icon="mdi:cash-multiple" className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-neutral-400 uppercase">Comissão Est.</h3>
+              <p className="text-[10px] text-neutral-600">{taxaComissao}% {metaBatida ? "(bônus)" : "(base)"}</p>
+            </div>
+          </div>
+          <p className={`text-3xl font-black ${metaBatida ? "text-green-400" : "text-emerald-400"}`}>
+            R$ {comissaoEstimada.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
         </motion.div>
       </div>
 
@@ -433,10 +506,75 @@ export default function MeuPainelPage() {
                 )}
                 <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-white/20 -translate-x-1/2 z-10" />
               </div>
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={finalizarBatalha}
+                  disabled={loadingBatalha}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/50 text-neutral-400 hover:text-red-400 text-sm font-bold transition-all disabled:opacity-50"
+                >
+                  {loadingBatalha ? <Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" /> : <Icon icon="mdi:flag-checkered" className="h-4 w-4" />}
+                  Encerrar Batalha
+                </button>
+              </div>
             </div>
           )}
         </div>
       </motion.div>
+
+      {/* HISTÓRICO DE BATALHAS */}
+      {historicoBatalhas.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="mb-8">
+          <div className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02]">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Icon icon="mdi:sword-cross" className="h-5 w-5 text-neutral-400" /> Histórico de Batalhas
+            </h3>
+            <div className="space-y-3">
+              {historicoBatalhas.map((b) => {
+                const isWinner = b.winner_id === vendedor?.id;
+                const isDraw = b.status === "finalizado" && !b.winner_id;
+                const isRecusado = b.status === "recusado";
+                const oponenteNome = b.challenger?.name === vendedor?.name ? b.challenged?.name : b.challenger?.name;
+                return (
+                  <div key={b.id} className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
+                    isRecusado ? "border-white/5 bg-white/[0.01]" :
+                    isWinner ? "border-green-500/20 bg-green-500/5" :
+                    isDraw ? "border-yellow-500/20 bg-yellow-500/5" :
+                    "border-red-500/20 bg-red-500/5"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        isRecusado ? "bg-neutral-800 text-neutral-500" :
+                        isWinner ? "bg-green-500/20 text-green-400" :
+                        isDraw ? "bg-yellow-500/20 text-yellow-400" :
+                        "bg-red-500/20 text-red-400"
+                      }`}>
+                        <Icon icon={isRecusado ? "mdi:close" : isWinner ? "mdi:trophy" : isDraw ? "mdi:handshake" : "mdi:skull"} className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white">vs. {oponenteNome ?? "Oponente"}</p>
+                        <p className="text-xs text-neutral-500">
+                          {isRecusado ? "Recusado" :
+                           b.finished_at ? new Date(b.finished_at).toLocaleDateString("pt-BR") : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    {!isRecusado && b.winner_amount != null && (
+                      <div className="text-right">
+                        <p className={`text-sm font-black ${isWinner ? "text-green-400" : isDraw ? "text-yellow-400" : "text-red-400"}`}>
+                          {isWinner ? "Vitória" : isDraw ? "Empate" : "Derrota"}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          R$ {Number(b.winner_amount).toLocaleString("pt-BR")} × R$ {Number(b.loser_amount).toLocaleString("pt-BR")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* HISTÓRICO DE VENDAS */}
       <div className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02]">

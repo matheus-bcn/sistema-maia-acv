@@ -9,10 +9,11 @@ interface SellerCardProps {
   seller: Seller;
   onToggleStatus: (id: string, currentStatus: SellerStatus) => void;
   onEdit?: () => void;
-  onDelete?: () => void; // NOVO: Prop para deletar
+  onDelete?: () => void;
+  onViewPanel?: () => void;
 }
 
-export function SellerCard({ seller, onToggleStatus, onEdit, onDelete }: SellerCardProps) {
+export function SellerCard({ seller, onToggleStatus, onEdit, onDelete, onViewPanel }: SellerCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +70,16 @@ export function SellerCard({ seller, onToggleStatus, onEdit, onDelete }: SellerC
               transition={{ duration: 0.15 }}
               className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl py-1 overflow-hidden"
             >
+              {onViewPanel && (
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onViewPanel(); }}
+                  className="w-full text-left px-4 py-2.5 text-sm font-semibold text-violet-400 hover:bg-violet-500/10 flex items-center gap-2 transition-colors"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Ver Painel
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

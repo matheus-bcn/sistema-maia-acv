@@ -1,6 +1,79 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CustomerStats } from "@/types";
 
+export interface CustomerPurchase {
+  id: string;
+  amount: number;
+  sale_date: string;
+  channel: string | null;
+  pdv_number: string | null;
+  seller_name: string;
+}
+
+export interface CustomerDetail {
+  compras: CustomerPurchase[];
+  canalPreferido: string | null;
+  nota: string;
+}
+
+export async function getCustomerDetail(
+  supabase: SupabaseClient,
+  customerName: string
+): Promise<CustomerDetail> {
+  const [salesResult, noteResult] = await Promise.all([
+    supabase
+      .from("sales")
+      .select("id, amount, sale_date, channel, pdv_number, seller:sellers(name)")
+      .eq("customer_name", customerName)
+      .in("status", ["Aprovado", "Concluída"])
+      .order("sale_date", { ascending: false }),
+    supabase
+      .from("customer_notes")
+      .select("note")
+      .eq("customer_name", customerName)
+      .maybeSingle(),
+  ]);
+
+  const compras: CustomerPurchase[] = (salesResult.data ?? []).map((row: any) => ({
+    id: row.id,
+    amount: Number(row.amount),
+    sale_date: (row.sale_date as string)?.slice(0, 10) ?? "",
+    channel: row.channel ?? null,
+    pdv_number: row.pdv_number ?? null,
+    seller_name: row.seller?.name ?? "—",
+  }));
+
+  // Canal preferido: o que aparece mais nas compras
+  const channelCount: Record<string, number> = {};
+  for (const c of compras) {
+    const ch = c.channel ?? "sem canal";
+    channelCount[ch] = (channelCount[ch] ?? 0) + 1;
+  }
+  const canalPreferido =
+    Object.keys(channelCount).length > 0
+      ? Object.entries(channelCount).sort((a, b) => b[1] - a[1])[0][0]
+      : null;
+
+  return {
+    compras,
+    canalPreferido,
+    nota: noteResult.data?.note ?? "",
+  };
+}
+
+export async function saveCustomerNote(
+  supabase: SupabaseClient,
+  customerName: string,
+  note: string,
+  updatedBy?: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from("customer_notes").upsert(
+    { customer_name: customerName, note, updated_by: updatedBy ?? null, updated_at: new Date().toISOString() },
+    { onConflict: "customer_name" }
+  );
+  return { error: error?.message ?? null };
+}
+
 // Clientes genéricos de balcão presencial — excluídos da análise de CRM
 // mas as vendas continuam contabilizadas normalmente nos totais
 const CLIENTES_IGNORADOS = /^cliente\s+balc[aã]o$/i;
