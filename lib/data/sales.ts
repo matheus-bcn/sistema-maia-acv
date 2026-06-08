@@ -130,6 +130,65 @@ export async function getMonthlyChartData(
   return result;
 }
 
+// Dados diários para comparativo mês atual vs mês anterior
+// Cada ponto representa as vendas daquele dia (não acumulado)
+export async function getDailyComparisonData(
+  supabase: SupabaseClient,
+  startDate: string,
+  endDate: string,
+  sellerId?: string
+): Promise<{ day: string; atual: number; anterior: number }[]> {
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T23:59:59`);
+
+  // Período anterior: mesmas datas um mês antes
+  const prevStart = new Date(start);
+  prevStart.setMonth(prevStart.getMonth() - 1);
+  const prevEnd = new Date(end);
+  prevEnd.setMonth(prevEnd.getMonth() - 1);
+
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  let curQ = supabase.from("sales").select("amount, sale_date")
+    .in("status", ["Aprovado", "Concluída"])
+    .gte("sale_date", fmt(start)).lte("sale_date", fmt(end));
+  let prevQ = supabase.from("sales").select("amount, sale_date")
+    .in("status", ["Aprovado", "Concluída"])
+    .gte("sale_date", fmt(prevStart)).lte("sale_date", fmt(prevEnd));
+
+  if (sellerId) {
+    curQ = curQ.eq("seller_id", sellerId);
+    prevQ = prevQ.eq("seller_id", sellerId);
+  }
+
+  const [curRes, prevRes] = await Promise.all([curQ, prevQ]);
+
+  const totalDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  const curBuckets = new Array(totalDays).fill(0);
+  const prevBuckets = new Array(totalDays).fill(0);
+
+  for (const row of curRes.data ?? []) {
+    const d = new Date(`${row.sale_date}T12:00:00`);
+    const idx = Math.round((d.getTime() - start.getTime()) / 86400000);
+    if (idx >= 0 && idx < totalDays) curBuckets[idx] += Number(row.amount);
+  }
+  for (const row of prevRes.data ?? []) {
+    const d = new Date(`${row.sale_date}T12:00:00`);
+    const idx = Math.round((d.getTime() - prevStart.getTime()) / 86400000);
+    if (idx >= 0 && idx < totalDays) prevBuckets[idx] += Number(row.amount);
+  }
+
+  return Array.from({ length: totalDays }, (_, i) => {
+    const d = new Date(start.getTime() + i * 86400000);
+    return {
+      day: String(d.getDate()).padStart(2, "0"),
+      atual: curBuckets[i],
+      anterior: prevBuckets[i],
+    };
+  });
+}
+
 // RESTAURAÇÃO DA FUNÇÃO DO CALENDÁRIO COM BLINDAGEM DE FUSO HORÁRIO
 export async function getDailySalesForMonth(
   supabase: SupabaseClient,

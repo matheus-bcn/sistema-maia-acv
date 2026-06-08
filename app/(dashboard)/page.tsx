@@ -5,10 +5,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation"; 
 import { createClient } from "@/lib/supabase/client";
 import { getDashboardStats, buildMaiaBriefing } from "@/lib/data/dashboard";
-import { getMonthlyChartData } from "@/lib/data/sales";
-import { obterBriefingIAAction } from "@/lib/actions/ai-actions"; 
+import { getMonthlyChartData, getDailyComparisonData } from "@/lib/data/sales";
+import { obterBriefingIAAction } from "@/lib/actions/ai-actions";
 import { TermometroRitmo } from "@/components/TermometroRitmo";
 import { TermometroDiasUteis } from "@/components/TermometroDiasUteis";
+import { GraficoComparativoDiario } from "@/components/GraficoComparativoDiario";
 import { ContagemFechamento } from "@/components/ContagemFechamento";
 import { ImportadorIA } from "@/components/ImportadorIA";
 import { SkeletonCard, SkeletonChart } from "@/components/SkeletonCard";
@@ -79,6 +80,7 @@ export default function Home() {
   const [vendedorSelecionado, setVendedorSelecionado] = useState<SellerRanking | null>(null);
   const [data, setData] = useState<DashboardData | null>(null);
   const [canais, setCanais] = useState<CanaisData>({ comercial: 0, atendimento: 0, pctComercial: 0, pctAtendimento: 0, dominante: "Empate" });
+  const [chartDiario, setChartDiario] = useState<{ day: string; atual: number; anterior: number }[]>([]);
   
   const [maiaAtiva, setMaiaAtiva] = useState(false);
   // Estado tipado para o novo formato de payload da IA
@@ -119,11 +121,14 @@ export default function Home() {
         }
       }
 
-      const [stats, chart, { data: salesData }] = await Promise.all([
+      const [stats, chart, { data: salesData }, comparativo] = await Promise.all([
         getDashboardStats(supabase, periodo.inicio, periodo.fim),
         getMonthlyChartData(supabase, periodo.inicio, periodo.fim),
-        supabase.from('sales').select('amount, channel').gte('sale_date', `${periodo.inicio}T00:00:00`).lte('sale_date', `${periodo.fim}T23:59:59`)
+        supabase.from('sales').select('amount, channel').gte('sale_date', `${periodo.inicio}T00:00:00`).lte('sale_date', `${periodo.fim}T23:59:59`),
+        getDailyComparisonData(supabase, periodo.inicio, periodo.fim),
       ]);
+
+      setChartDiario(comparativo);
 
       setData({
         totalFaturado: stats.totalFaturado,
@@ -379,6 +384,10 @@ export default function Home() {
             </div>
 
             <MetaEquipe faturado={data.totalFaturado} meta={data.metaGlobal} />
+
+            <motion.div variants={itemVariants}>
+              <GraficoComparativoDiario data={chartDiario} startDate={periodo.inicio} />
+            </motion.div>
 
             <div className="grid gap-6 lg:grid-cols-3">
               <motion.div variants={itemVariants}><TermometroDiasUteis meta={data.metaGlobal} faturado={data.totalFaturado} inicio={periodo.inicio} fim={periodo.fim} /></motion.div>
