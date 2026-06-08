@@ -59,6 +59,10 @@ export default function ConfiguracaoPage() {
   const [metaIndividual, setMetaIndividual] = useState("0,00");
   const [metasVendedores, setMetasVendedores] = useState<{ id: string; name: string; value: string }[]>([]);
 
+  // Estados de Comissão
+  const [comissaoBase, setComissaoBase] = useState("2,50");
+  const [comissaoBonus, setComissaoBonus] = useState("4,00");
+
   // Estados de Premiações
   const [premiacoes, setPremiacoes] = useState<{ id: string; titulo: string; descricao: string; valor: string }[]>([]);
   const [novaPremiacao, setNovaPremiacao] = useState({ titulo: "", descricao: "", valor: "" });
@@ -77,6 +81,18 @@ export default function ConfiguracaoPage() {
 
       setMetaEquipe(formatCurrency(team || 0));
       setMetaIndividual(formatCurrency(ind || 0));
+
+      // 1c. Taxas de comissão
+      try {
+        const { data: settings } = await supabase
+          .from("company_settings")
+          .select("commission_rate, commission_rate_bonus")
+          .maybeSingle();
+        if (settings?.commission_rate != null) {
+          setComissaoBase(String(Number(settings.commission_rate)).replace(".", ","));
+          setComissaoBonus(String(Number(settings.commission_rate_bonus ?? 4)).replace(".", ","));
+        }
+      } catch (e) {}
 
       // 1b. Metas por vendedor
       try {
@@ -169,6 +185,16 @@ export default function ConfiguracaoPage() {
       await Promise.all(
         metasVendedores.map((v) => upsertSellerGoal(supabase, v.id, parseCurrency(v.value)))
       );
+
+      // Taxas de comissão
+      const rateBase = parseFloat(comissaoBase.replace(",", ".")) || 2.5;
+      const rateBonus = parseFloat(comissaoBonus.replace(",", ".")) || 4.0;
+      const { data: existingSettings } = await supabase.from("company_settings").select("id").limit(1).maybeSingle();
+      if (existingSettings?.id) {
+        await supabase.from("company_settings").update({ commission_rate: rateBase, commission_rate_bonus: rateBonus }).eq("id", existingSettings.id);
+      } else {
+        await supabase.from("company_settings").insert({ commission_rate: rateBase, commission_rate_bonus: rateBonus });
+      }
 
       setFeedback({ type: "success", message: "Metas salvas com sucesso!" });
       setTimeout(() => setFeedback(null), 4000);
@@ -391,9 +417,56 @@ export default function ConfiguracaoPage() {
                 </div>
               </div>
             )}
+
+            {/* Taxas de Comissão */}
+            {!loading && (
+              <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
+                <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-400" />
+                  Taxas de Comissão
+                </h3>
+                <p className="text-xs text-neutral-500 mb-6">Percentual sobre faturamento. Base: vendas normais. Bônus: ao bater a meta.</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-black/30">
+                    <label className="text-xs font-bold text-neutral-400 uppercase">Taxa Base (%)</label>
+                    <p className="text-[11px] text-neutral-600">Aplicada sobre todo o faturamento do mês.</p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={comissaoBase}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9,]/g, "");
+                          setComissaoBase(v);
+                        }}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 pr-9 py-2.5 text-sm font-black text-green-400 outline-none focus:ring-2 focus:ring-green-500/30"
+                        placeholder="2,50"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500">%</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-black/30">
+                    <label className="text-xs font-bold text-neutral-400 uppercase">Taxa Bônus (%)</label>
+                    <p className="text-[11px] text-neutral-600">Aplicada quando o vendedor bate ou supera a meta.</p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={comissaoBonus}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^0-9,]/g, "");
+                          setComissaoBonus(v);
+                        }}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 pr-9 py-2.5 text-sm font-black text-emerald-400 outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        placeholder="4,00"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
-        
+
         {abaAtiva === "premiacoes" && (
           <div className="space-y-6">
             <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.02] space-y-4">
