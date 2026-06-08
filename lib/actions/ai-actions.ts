@@ -87,11 +87,30 @@ export async function obterBriefingIAAction(stats: any) {
 }
 
 export async function analisarRelatorioAction(dadosRelatorio: any) {
+  if (!process.env.GEMINI_API_KEY) {
+    return { success: false, error: "GEMINI_API_KEY não configurada." };
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent("Analise este relatório: " + JSON.stringify(dadosRelatorio));
-    return { success: true, insight: result.response.text() };
-  } catch (error) {
-    return { success: false, error: "Erro ao gerar análise" };
+
+    const prompt = `
+Você é M.A.I.A, assistente de inteligência comercial. Analise os dados abaixo e gere um relatório executivo em português brasileiro.
+
+Dados: ${JSON.stringify(dadosRelatorio)}
+
+Formato obrigatório (texto corrido, sem markdown, sem asteriscos):
+- Parágrafo 1: situação geral da equipe vs meta (2 frases)
+- Parágrafo 2: destaque positivo e ponto de atenção (2 frases)
+- Parágrafo 3: recomendação estratégica para os próximos dias (1 frase)
+
+Máximo 120 palavras no total. Tom: direto, analítico, motivador.`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    return { success: true, insight: text };
+  } catch (error: any) {
+    console.error("Erro analisarRelatorioAction:", error?.message ?? error);
+    return { success: false, error: "Falha ao conectar com a IA." };
   }
 }
