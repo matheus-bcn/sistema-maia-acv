@@ -14,11 +14,29 @@ interface ImportadorIAProps {
   onImported: () => void;
 }
 
+const CANAL_INFO = {
+  atendimento: {
+    label: "Atendimento (PDV)",
+    icon: "mdi:monitor-account",
+    desc: "Relatório de vendas do balcão / PDV",
+    color: "#60a5fa",
+  },
+  comercial: {
+    label: "Comercial (O.S.)",
+    icon: "mdi:briefcase-outline",
+    desc: "Relatório de Ordens de Serviço emitidas",
+    color: "#a78bfa",
+  },
+} as const;
+
+type Canal = keyof typeof CANAL_INFO;
+
 export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps) {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [sellerId, setSellerId] = useState("");
+  const [canal, setCanal] = useState<Canal>("atendimento");
   const [file, setFile] = useState<File | null>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -58,17 +76,17 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
     setSuccessMessage(null);
 
     try {
-      // Cria o objeto FormData nativo para carregar o arquivo limpo para o servidor
       const formData = new FormData();
       formData.append("file", file);
 
-      const result = await importPdvReportAction(formData, sellerId);
+      const result = await importPdvReportAction(formData, sellerId, canal);
 
       if (result.error) {
         setError(result.error);
       } else if (result.success) {
+        const canalLabel = CANAL_INFO[canal].label;
         setSuccessMessage(
-          `🚀 Sucesso total! O sistema identificou as colunas do PDV e lançou automaticamente ${result.inserted} vendas para o(a) atendente ${result.sellerName} no canal Atendimento.`
+          `Sucesso! O sistema identificou e lançou automaticamente ${result.inserted} vendas para ${result.sellerName} no canal ${canalLabel}.`
         );
         setFile(null);
         setTimeout(() => {
@@ -77,12 +95,14 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
           setSuccessMessage(null);
         }, 3500);
       }
-    } catch (err) {
+    } catch {
       setError("Ocorreu um erro inesperado ao realizar o upload do arquivo.");
     } finally {
       setLoading(false);
     }
   };
+
+  const canalAtivo = CANAL_INFO[canal];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -95,7 +115,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-xl font-black">Importador Automatizado</h3>
-            <p className="text-xs text-neutral-400 mt-0.5">Leitura de relatório de PDV (Canal Atendimento)</p>
+            <p className="text-xs text-neutral-400 mt-0.5">Leitura de relatório de vendas</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-neutral-400 hover:text-white">
             <Icon icon="line-md:close" className="h-5 w-5" />
@@ -121,7 +141,40 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
             </select>
           </div>
 
-          {/* ÁREA EXCLUSIVA DE DRAG AND DROP DO ARQUIVO */}
+          {/* SELEÇÃO DO CANAL */}
+          <div>
+            <label className="text-xs font-bold uppercase text-neutral-400 flex items-center gap-1 mb-1.5">
+              <Icon icon="mdi:tag-outline" className="h-3 w-3" /> Canal do Relatório
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(CANAL_INFO) as Canal[]).map((key) => {
+                const info = CANAL_INFO[key];
+                const ativo = canal === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => { setCanal(key); setError(null); }}
+                    className="flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-all"
+                    style={{
+                      borderColor: ativo ? info.color + "60" : "rgba(255,255,255,0.08)",
+                      background: ativo ? info.color + "15" : "rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Icon icon={info.icon} className="h-4 w-4" style={{ color: ativo ? info.color : "#6b7280" }} />
+                      <span className="text-xs font-bold" style={{ color: ativo ? info.color : "#9ca3af" }}>
+                        {info.label}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-neutral-500 leading-tight">{info.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ÁREA DE UPLOAD DO ARQUIVO */}
           <div className="border-2 border-dashed border-white/10 hover:border-white/30 rounded-xl p-6 text-center cursor-pointer transition-all relative bg-black/20 group">
             <input
               type="file"
@@ -129,18 +182,18 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
               onChange={handleFileChange}
               className="absolute inset-0 opacity-0 cursor-pointer z-10"
             />
-            
+
             {file ? (
-              <div className="flex flex-col items-center justify-center text-purple-400">
-                <Icon icon="mdi:file-spreadsheet" className="h-10 w-10 mb-2" />
+              <div className="flex flex-col items-center justify-center" style={{ color: canalAtivo.color }}>
+                <Icon icon="mdi:file-document-check" className="h-10 w-10 mb-2" />
                 <p className="text-sm font-bold truncate max-w-xs">{file.name}</p>
-                <p className="text-xs text-neutral-500 mt-1">{(file.size / 1024).toFixed(1)} KB - Arquivo carregado</p>
+                <p className="text-xs text-neutral-500 mt-1">{(file.size / 1024).toFixed(1)} KB · {canalAtivo.label}</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center text-neutral-400 group-hover:text-neutral-200">
                 <Icon icon="mdi:cloud-upload" className="h-10 w-10 mb-2 text-neutral-500 transition-colors group-hover:text-white" />
-                <p className="text-sm font-bold">Arraste ou selecione o arquivo do relatório</p>
-                <p className="text-xs text-neutral-500 mt-1">Aceita formatos de texto puro (.csv ou .txt)</p>
+                <p className="text-sm font-bold">Arraste ou selecione o relatório</p>
+                <p className="text-xs text-neutral-500 mt-1">Aceita .csv ou .txt — formato {canalAtivo.label}</p>
               </div>
             )}
           </div>
@@ -167,7 +220,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
         >
           {loading ? (
             <>
-              <Icon icon="line-md:loading-loop" className="h-4 w-4" /> M.A.I.A processando PDVs...
+              <Icon icon="line-md:loading-loop" className="h-4 w-4" /> M.A.I.A processando relatório...
             </>
           ) : (
             "Processar e Lançar Vendas"
