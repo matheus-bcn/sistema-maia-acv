@@ -3,6 +3,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const MODEL = "gemini-1.5-flash";
+const REQ_OPTS = { apiVersion: "v1" };
 
 type InsightTipo = "ALERTA" | "PARABENS" | "DICA" | "NEUTRO";
 
@@ -65,7 +67,7 @@ export async function obterBriefingIAAction(stats: any) {
   const tipo = classificarTipo(stats);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: MODEL }, REQ_OPTS);
     const prompt = PROMPTS[tipo](stats);
     const result = await model.generateContent(prompt);
     const rawText = result.response.text();
@@ -103,7 +105,7 @@ export async function analisarRelatorioAction(dadosRelatorio: any) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: MODEL }, REQ_OPTS);
 
     const d = dadosRelatorio;
     const pct = d.metaEquipe > 0 ? ((d.faturamentoTotal / d.metaEquipe) * 100).toFixed(1) : "0";
@@ -182,10 +184,7 @@ REGRAS DE COMPORTAMENTO:
 5. Tom: direto, analítico, motivador e profissional.
 6. Respostas concisas (máximo 180 palavras), sem markdown excessivo — apenas texto corrido com ênfase natural.`;
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction,
-    });
+    const model = genAI.getGenerativeModel({ model: MODEL, systemInstruction }, REQ_OPTS);
 
     const chat = model.startChat({
       history: historico.map((m) => ({
