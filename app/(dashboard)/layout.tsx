@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export default function DashboardLayout({
   children,
@@ -43,10 +44,17 @@ export default function DashboardLayout({
           <Sidebar />
         </div>
 
-        {/* Conteúdo principal — padding-bottom extra no mobile para a bottom nav */}
-        <main className="flex-1 w-full min-w-0 overflow-y-auto p-4 pb-24 md:p-8 md:pb-8 scroll-smooth custom-scrollbar">
-          {children}
-        </main>
+        {/* Conteúdo principal */}
+        <div className="flex-1 w-full min-w-0 flex flex-col overflow-hidden">
+          {/* Barra superior com sino */}
+          <div className="flex-shrink-0 flex items-center justify-end px-4 pt-4 md:px-8 md:pt-6 pb-0">
+            <NotificationBell />
+          </div>
+
+          <main className="flex-1 w-full min-w-0 overflow-y-auto px-4 pb-24 pt-4 md:px-8 md:pb-8 md:pt-4 scroll-smooth custom-scrollbar">
+            {children}
+          </main>
+        </div>
       </div>
 
       {/* Bottom Nav — apenas mobile */}

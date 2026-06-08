@@ -9,6 +9,7 @@ import { TermometroRitmo } from "@/components/TermometroRitmo";
 import { GraficoComparativoDiario } from "@/components/GraficoComparativoDiario";
 import { getDailyComparisonData } from "@/lib/data/sales";
 import { getSellerGoal } from "@/lib/data/goals";
+import { enviarDesafioAction } from "@/lib/actions/battles";
 
 function getInitialPeriodo() {
   const hoje = new Date();
@@ -142,11 +143,7 @@ export default function MeuPainelPage() {
   const enviarDesafio = async () => {
     if (!colegaSelecionado) return;
     setLoadingBatalha(true);
-    await supabase.from("x1_battles").insert({
-      challenger_id: vendedor.id,
-      challenged_id: colegaSelecionado,
-      status: "pendente",
-    });
+    await enviarDesafioAction(vendedor.id, colegaSelecionado);
     await carregarMeuPainel();
     setLoadingBatalha(false);
   };

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createSale, importSalesFromRows } from "@/lib/data/sales";
+import { getSellerGoal } from "@/lib/data/goals";
+import { createNotification } from "@/lib/data/notifications";
 
 export async function createSaleAction(input: {
   seller_id: string;
@@ -241,6 +243,41 @@ export async function importPdvReportAction(
     if (result.error) return { error: result.error };
 
     revalidatePath("/", "layout");
+
+    // Verifica se o vendedor bateu a meta mensal após o import
+    try {
+      const hoje = new Date();
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
+      const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      const [goalValue, { data: salesData }] = await Promise.all([
+        getSellerGoal(supabase, sellerId),
+        supabase.from("sales").select("amount").eq("seller_id", sellerId).gte("sale_date", inicioMes).lte("sale_date", fimMes).in("status", ["Aprovado", "Concluída"]),
+      ]);
+
+      const totalMes = (salesData ?? []).reduce((s, r) => s + Number(r.amount), 0);
+
+      if (totalMes >= goalValue) {
+        const mesAno = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+        const { data: jaNotificou } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("seller_id", sellerId)
+          .eq("type", "meta_batida")
+          .gte("created_at", `${mesAno}-01T00:00:00`)
+          .limit(1)
+          .maybeSingle();
+
+        if (!jaNotificou) {
+          await createNotification(supabase, {
+            seller_id: sellerId,
+            type: "meta_batida",
+            title: "Meta Mensal Batida!",
+            message: `Parabéns, ${sellerName}! Você atingiu R$ ${totalMes.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} este mês, superando sua meta.`,
+          });
+        }
+      }
+    } catch { /* notificação é opcional, não bloqueia o import */ }
 
     return { success: true, inserted: result.inserted, sellerName };
 
