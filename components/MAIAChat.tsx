@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, BrainCircuit, User, Sparkles, RotateCcw } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { chatComMAIAAction } from "@/lib/actions/ai-actions";
 import type { ContextoMAIA, MensagemHistorico } from "@/lib/actions/ai-actions";
 
@@ -66,9 +66,9 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
         let conteudo: string;
         if (resultado.success && resultado.resposta) {
           conteudo = resultado.resposta;
-        } else if (resultado.error?.includes("GEMINI_API_KEY")) {
+        } else if (resultado.error?.includes("GROQ_API_KEY")) {
           conteudo =
-            "⚠️ A chave da IA não está configurada. Acesse o Vercel → Settings → Environment Variables e adicione a variável GEMINI_API_KEY com sua chave do Google AI Studio.";
+            "⚠️ A chave da IA não está configurada. Acesse o Vercel → Settings → Environment Variables e adicione a variável GROQ_API_KEY com sua chave do Groq.";
         } else {
           conteudo = resultado.error ?? "Não foi possível processar sua pergunta. Tente novamente.";
         }
@@ -109,7 +109,7 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 shrink-0">
         <div className="p-2 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20">
-          <Sparkles className="h-5 w-5 text-fuchsia-400" />
+          <Icon icon="line-md:star-pulsating-loop" className="h-5 w-5 text-fuchsia-400" />
         </div>
         <div>
           <h3 className="font-bold text-white text-sm uppercase tracking-wider">
@@ -127,7 +127,7 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
             title="Nova conversa"
             className="p-1.5 rounded-lg text-neutral-500 hover:text-white hover:bg-white/10 transition-all"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <Icon icon="mdi:reload" className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
             >
               {msg.role === "model" && (
                 <div className="w-7 h-7 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                  <BrainCircuit className="h-3.5 w-3.5 text-fuchsia-400" />
+                  <Icon icon="mdi:brain" className="h-3.5 w-3.5 text-fuchsia-400" />
                 </div>
               )}
               <div
@@ -159,7 +159,7 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
               </div>
               {msg.role === "user" && (
                 <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="h-3.5 w-3.5 text-white" />
+                  <Icon icon="line-md:account" className="h-3.5 w-3.5 text-white" />
                 </div>
               )}
             </motion.div>
@@ -174,7 +174,7 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
               className="flex gap-2.5 justify-start"
             >
               <div className="w-7 h-7 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 flex items-center justify-center shrink-0">
-                <BrainCircuit className="h-3.5 w-3.5 text-fuchsia-400" />
+                <Icon icon="mdi:brain" className="h-3.5 w-3.5 text-fuchsia-400" />
               </div>
               <div className="bg-white/[0.05] border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
                 <div className="flex gap-1 items-center h-4">
@@ -243,9 +243,9 @@ export function MAIAChat({ contexto }: MAIAChatProps) {
             className="p-2.5 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Icon icon="line-md:loading-loop" className="h-4 w-4" />
             ) : (
-              <Send className="h-4 w-4" />
+              <Icon icon="mdi:send" className="h-4 w-4" />
             )}
           </button>
         </div>

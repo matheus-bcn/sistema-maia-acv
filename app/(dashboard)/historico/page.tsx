@@ -2,20 +2,11 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  History,
-  Search,
-  Calendar as CalendarIcon,
-  Filter,
-  ArrowDownToLine,
-  AlertCircle,
-  RefreshCw,
-  FileSpreadsheet,
-  X,
-  Trash2,
-  Trash
-} from "lucide-react";
-import { DATE_INPUT_CLASS } from "@/components/PeriodoFilter";
+import { Icon } from "@iconify/react";
+
+const DATE_INPUT_CLASS =
+  "w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none transition-all cursor-pointer " +
+  "[color-scheme:dark] bg-white/5 border border-white/10 focus:border-violet-500/50 focus:bg-white/8";
 import { createClient } from "@/lib/supabase/client";
 import { listSales } from "@/lib/data/sales";
 import { deleteSaleAction, deleteAllSalesAction } from "@/lib/actions/sales"; 
@@ -156,7 +147,7 @@ export default function HistoricoPage() {
       <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
-            <History className="h-8 w-8 text-neutral-400" />
+            <Icon icon="line-md:watch-loop" className="h-8 w-8 text-neutral-400" />
             Histórico de Vendas
           </h2>
           <p className="text-neutral-400 mt-1">Auditoria e registro de faturamento da equipe</p>
@@ -169,7 +160,7 @@ export default function HistoricoPage() {
             disabled={loading || vendas.length === 0}
             className="flex items-center gap-2 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Trash className="h-4 w-4" />
+            <Icon icon="mdi:trash-can" className="h-4 w-4" />
             Limpar Mês
           </button>
           
@@ -179,7 +170,7 @@ export default function HistoricoPage() {
             disabled={loading || vendasFiltradas.length === 0}
             className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ArrowDownToLine className="h-4 w-4" />
+            <Icon icon="mdi:download" className="h-4 w-4" />
             Exportar CSV
           </button>
         </div>
@@ -187,7 +178,7 @@ export default function HistoricoPage() {
 
       <div className="glass-card rounded-xl p-4 mb-6 border border-white/5 flex flex-col md:flex-row gap-3 md:items-center bg-white/[0.02] relative z-20">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+          <Icon icon="line-md:search" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
           <input
             type="text"
             placeholder="Buscar por vendedor ou ID..."
@@ -208,7 +199,7 @@ export default function HistoricoPage() {
               showDateFilter ? "border-white/30 bg-white/10 text-white" : "border-white/10 text-neutral-300 hover:bg-white/5"
             }`}
           >
-            <CalendarIcon className="h-4 w-4 text-neutral-400" />
+            <Icon icon="line-md:calendar" className="h-4 w-4 text-neutral-400" />
             Filtrar Data
           </button>
           
@@ -218,12 +209,12 @@ export default function HistoricoPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute right-0 sm:left-0 top-full mt-2 w-64 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-3" style={{background:"rgba(10,12,20,0.97)",border:"1px solid rgba(255,255,255,0.1)",backdropFilter:"blur(20px)"}}
+                className="absolute right-0 sm:left-0 top-full mt-2 w-64 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-3"
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-sm font-bold text-white">Período</span>
                   <button onClick={() => setShowDateFilter(false)} className="text-neutral-500 hover:text-white">
-                    <X className="h-4 w-4" />
+                    <Icon icon="line-md:close" className="h-4 w-4" />
                   </button>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -232,7 +223,7 @@ export default function HistoricoPage() {
                     type="date" 
                     value={periodo.inicio}
                     onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))}
-                    className={DATE_INPUT_CLASS}
+                    className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 cursor-pointer invert-[0.8] brightness-200"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -241,7 +232,7 @@ export default function HistoricoPage() {
                     type="date" 
                     value={periodo.fim}
                     onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))}
-                    className={DATE_INPUT_CLASS}
+                    className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 cursor-pointer invert-[0.8] brightness-200"
                   />
                 </div>
               </motion.div>
@@ -260,7 +251,7 @@ export default function HistoricoPage() {
               showStatusFilter || statusSelecionado !== "Todos" ? "border-white/30 bg-white/10 text-white" : "border-white/10 text-neutral-300 hover:bg-white/5"
             }`}
           >
-            <Filter className="h-4 w-4 text-neutral-400" />
+            <Icon icon="mdi:filter" className="h-4 w-4 text-neutral-400" />
             {statusSelecionado !== "Todos" ? statusSelecionado : "Mais Filtros"}
           </button>
 
@@ -275,7 +266,7 @@ export default function HistoricoPage() {
                 <div className="flex justify-between items-center px-2 py-1 mb-1">
                   <span className="text-xs font-bold text-neutral-400 uppercase">Status da Venda</span>
                   <button onClick={() => setShowStatusFilter(false)} className="text-neutral-500 hover:text-white">
-                    <X className="h-3 w-3" />
+                    <Icon icon="line-md:close" className="h-3 w-3" />
                   </button>
                 </div>
                 {["Todos", "Aprovado", "Concluída", "Pendente", "Cancelado"].map((status) => (
@@ -324,14 +315,14 @@ export default function HistoricoPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col items-center justify-center p-6 rounded-xl border border-red-500/20 bg-red-500/5 max-w-lg mx-auto"
                       >
-                        <AlertCircle className="h-8 w-8 text-red-400 mb-3 animate-pulse" />
+                        <Icon icon="line-md:alert-circle-loop" className="h-8 w-8 text-red-400 mb-3" />
                         <p className="text-sm text-neutral-300 mb-4">{error}</p>
                         <button
                           type="button"
                           onClick={carregarVendas}
                           className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white font-semibold rounded-md border border-white/10 hover:bg-white/20 transition-all text-sm"
                         >
-                          <RefreshCw className="h-4 w-4" /> Tentar Novamente
+                          <Icon icon="mdi:reload" className="h-4 w-4" /> Tentar Novamente
                         </button>
                       </motion.div>
                     </td>
@@ -360,7 +351,7 @@ export default function HistoricoPage() {
                         animate={{ opacity: 1 }}
                         className="flex flex-col items-center justify-center text-neutral-500"
                       >
-                        <FileSpreadsheet className="h-12 w-12 mb-3 opacity-20" />
+                        <Icon icon="mdi:file-spreadsheet" className="h-12 w-12 mb-3 opacity-20" />
                         <p className="text-lg font-semibold text-neutral-400">Nenhum registro encontrado</p>
                         <p className="text-sm mt-1">Ajuste os filtros ou os termos de busca.</p>
                       </motion.div>
@@ -422,7 +413,7 @@ export default function HistoricoPage() {
                           className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all"
                           title="Excluir Venda"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Icon icon="mdi:delete" className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
@@ -444,7 +435,7 @@ export default function HistoricoPage() {
               className="glass-card w-full max-w-sm rounded-2xl p-6 border border-red-500/30 bg-neutral-900 text-white space-y-4 shadow-2xl"
             >
               <div className="flex items-center gap-3 text-red-400">
-                <AlertCircle className="h-6 w-6 flex-shrink-0" />
+                <Icon icon="line-md:alert-circle-loop" className="h-6 w-6 flex-shrink-0 text-red-400" />
                 <h3 className="text-lg font-black text-white">Limpar Mês Inteiro?</h3>
               </div>
               
@@ -467,7 +458,7 @@ export default function HistoricoPage() {
                   disabled={isDeletingAll}
                   className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-bold text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  {isDeletingAll ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />} 
+                  {isDeletingAll ? <Icon icon="line-md:loading-loop" className="h-4 w-4" /> : <Icon icon="mdi:trash-can" className="h-4 w-4" />}
                   {isDeletingAll ? "Excluindo..." : "Sim, apagar tudo"}
                 </button>
               </div>
@@ -486,7 +477,7 @@ export default function HistoricoPage() {
               className="glass-card w-full max-w-sm rounded-2xl p-6 border border-white/20 bg-neutral-900 text-white space-y-4 shadow-2xl"
             >
               <div className="flex items-center gap-3 text-amber-400">
-                <AlertCircle className="h-6 w-6 flex-shrink-0" />
+                <Icon icon="line-md:alert-circle-loop" className="h-6 w-6 flex-shrink-0 text-amber-400" />
                 <h3 className="text-lg font-black text-white">Excluir Venda?</h3>
               </div>
               
@@ -507,7 +498,7 @@ export default function HistoricoPage() {
                   onClick={() => confirmDelete(saleToDelete)}
                   className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-bold text-white transition-colors flex items-center gap-1.5 shadow-lg shadow-red-500/10"
                 >
-                  <Trash2 className="h-4 w-4" /> Excluir
+                  <Icon icon="mdi:delete" className="h-4 w-4" /> Excluir
                 </button>
               </div>
             </motion.div>

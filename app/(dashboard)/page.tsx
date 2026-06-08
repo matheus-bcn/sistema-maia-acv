@@ -17,7 +17,7 @@ import { MaiaBriefing } from "@/components/MaiaBriefing";
 import { MetaEquipe } from "@/components/MetaEquipe";
 import { NovaVendaModal } from "@/components/NovaVendaModal";
 import { dispararGritoDeGol } from "@/lib/utils";
-import { Users, Upload, Plus, AlertCircle, RefreshCw, Calendar as CalendarIcon, X, Target, Banknote, PieChart, TrendingUp, LayoutDashboard, DollarSign, Star, ShoppingCart, Clock } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import type { ChartPoint, SellerRanking } from "@/types";
 
@@ -42,7 +42,6 @@ interface MaiaInsight {
   titulo: string;
   briefing: string;
   acao: string;
-  tipo?: "ALERTA" | "PARABENS" | "DICA" | "NEUTRO";
 }
 
 const containerVariants: Variants = {
@@ -160,13 +159,17 @@ export default function Home() {
 
       if (cachedIA) {
         const { timestamp, data: cachedData } = JSON.parse(cachedIA);
-        const minutesPassed = (Date.now() - timestamp) / (1000 * 60);
-        if (minutesPassed < 30) {
+        // Calcula quantas horas se passaram desde o último insight
+        const hoursPassed = (Date.now() - timestamp) / (1000 * 60 * 60);
+        
+        // Se passou MENOS de 2 horas, usa o insight guardado no Cache do Navegador
+        if (hoursPassed < 2) {
           setMensagemIA(cachedData);
           shouldFetchAI = false;
         }
       }
 
+      // Só bate na API do Gemini se o cache expirou (passou de 2h) ou se for a primeira vez
       if (shouldFetchAI) {
         const briefingIA = await obterBriefingIAAction(stats);
 
@@ -174,8 +177,7 @@ export default function Home() {
           const aiPayload: MaiaInsight = {
             titulo: briefingIA.titulo,
             briefing: briefingIA.briefing,
-            acao: briefingIA.acao,
-            tipo: briefingIA.tipo as any,
+            acao: briefingIA.acao
           };
           
           setMensagemIA(aiPayload);
@@ -254,7 +256,7 @@ export default function Home() {
         <div>
           <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
             <div className="p-2 rounded-xl icon-badge-orange">
-              <LayoutDashboard className="h-6 w-6" />
+              <Icon icon="mdi:view-dashboard" className="h-6 w-6" />
             </div>
             <span className="text-white">Dashboard</span>
           </h2>
@@ -264,23 +266,23 @@ export default function Home() {
         <div className="flex flex-wrap gap-4 items-center w-full sm:w-auto">
           <div className="relative">
             <button onClick={() => setIsDatePickerOpen(!isDatePickerOpen)} className={`flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors backdrop-blur-md ${isDatePickerOpen ? "bg-white/10 border-white/30 text-white" : "bg-black/40 border-white/10 text-neutral-300 hover:bg-white/10"}`}>
-              <CalendarIcon className="h-4 w-4 text-neutral-400" />
+              <Icon icon="line-md:calendar" className="h-4 w-4 text-neutral-400" />
               <span>{periodo.inicio.split('-').reverse().join('/')} - {periodo.fim.split('-').reverse().join('/')}</span>
             </button>
             <AnimatePresence>
               {isDatePickerOpen && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-72 rounded-2xl p-4 shadow-2xl z-50 flex flex-col gap-4" style={{background:"rgba(10,12,20,0.97)",border:"1px solid rgba(255,255,255,0.10)",backdropFilter:"blur(24px)"}}>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-72 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-bold text-white">Selecionar Período</span>
-                    <button onClick={() => setIsDatePickerOpen(false)} className="text-neutral-500 hover:text-white"><X className="h-4 w-4" /></button>
+                    <button onClick={() => setIsDatePickerOpen(false)} className="text-neutral-500 hover:text-white"><Icon icon="line-md:close" className="h-4 w-4" /></button>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-neutral-400 uppercase font-semibold">Data Inicial</label>
-                    <input type="date" value={periodo.inicio} onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))} className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none cursor-pointer [color-scheme:dark] bg-white/5 border border-white/10 focus:border-violet-500/50" />
+                    <input type="date" value={periodo.inicio} onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 invert-[0.8] brightness-200" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-neutral-400 uppercase font-semibold">Data Final</label>
-                    <input type="date" value={periodo.fim} onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))} className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none cursor-pointer [color-scheme:dark] bg-white/5 border border-white/10 focus:border-violet-500/50" />
+                    <input type="date" value={periodo.fim} onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 invert-[0.8] brightness-200" />
                   </div>
                 </motion.div>
               )}
@@ -289,10 +291,10 @@ export default function Home() {
 
           <div className="flex gap-3 ml-auto sm:ml-0">
             <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold transition-all hover:bg-white/10 hover:border-white/20 backdrop-blur-md">
-              <Upload className="h-4 w-4 text-white/60" /> Importar Relatório
+              <Icon icon="mdi:cloud-upload" className="h-4 w-4 text-white/60" /> Importar Relatório
             </button>
             <button onClick={() => setIsNovaVendaOpen(true)} className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold btn-gradient-orange">
-              <Plus className="h-4 w-4" /> Nova Venda
+              <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Venda
             </button>
           </div>
         </div>
@@ -301,10 +303,10 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {error ? (
           <motion.div key="error" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center p-12 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-md text-center max-w-2xl mx-auto my-10 relative z-10">
-            <AlertCircle className="h-12 w-12 text-red-400 mb-4 animate-pulse" />
+            <Icon icon="line-md:alert-circle-loop" className="h-12 w-12 text-red-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">Ops! Problema de Permissão</h3>
             <p className="text-sm text-neutral-400 mb-6">{error}</p>
-            <button onClick={carregarDados} className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white font-semibold rounded-md border border-white/10 hover:bg-white/20 transition-all text-sm"><RefreshCw className="h-4 w-4" /> Tentar Novamente</button>
+            <button onClick={carregarDados} className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white font-semibold rounded-md border border-white/10 hover:bg-white/20 transition-all text-sm"><Icon icon="mdi:reload" className="h-4 w-4" /> Tentar Novamente</button>
           </motion.div>
         ) : loading || !data ? (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid gap-6 relative z-10">
@@ -320,7 +322,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-widest text-orange-300/70">Total Faturado</span>
                   <div className="p-2 rounded-lg icon-badge-orange">
-                    <DollarSign className="h-4 w-4" />
+                    <Icon icon="mdi:currency-usd" className="h-4 w-4" />
                   </div>
                 </div>
                 <p className="text-3xl font-black tracking-tight text-gradient-orange">
@@ -340,12 +342,12 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-widest text-pink-300/70">Destaque</span>
                   <div className="p-2 rounded-lg icon-badge-pink">
-                    <Star className="h-4 w-4" />
+                    <Icon icon="line-md:star-pulsating-loop" className="h-4 w-4" />
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 mt-1">
                   <div className="h-9 w-9 rounded-full flex items-center justify-center icon-badge-pink flex-shrink-0">
-                    <Users className="h-4 w-4" />
+                    <Icon icon="mdi:account-group" className="h-4 w-4" />
                   </div>
                   <div>
                     <p className="text-base font-black leading-tight text-white">{data.topSeller?.seller.name ?? "—"}</p>
@@ -361,7 +363,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-widest text-teal-300/70">Qtd. Vendas</span>
                   <div className="p-2 rounded-lg icon-badge-teal">
-                    <ShoppingCart className="h-4 w-4" />
+                    <Icon icon="mdi:cart" className="h-4 w-4" />
                   </div>
                 </div>
                 <p className="text-3xl font-black tracking-tight text-gradient-teal">
@@ -385,7 +387,7 @@ export default function Home() {
                 <div className="glass-card rounded-2xl border border-white/5 p-6 h-full min-h-[340px] flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2.5 rounded-xl icon-badge-teal"><Banknote className="h-5 w-5" /></div>
+                      <div className="p-2.5 rounded-xl icon-badge-teal"><Icon icon="mdi:cash" className="h-5 w-5" /></div>
                       <h3 className="text-sm font-bold uppercase tracking-widest text-white/40">Inteligência de Vendas</h3>
                     </div>
                     <div className="mb-6">
@@ -397,7 +399,7 @@ export default function Home() {
                   </div>
                   <div className="rounded-xl p-4 border border-violet-500/15 bg-violet-500/5">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-violet-400" />
+                      <Icon icon="mdi:target" className="h-4 w-4 text-violet-400" />
                       <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Média Diária</span>
                     </div>
                     <span className="text-2xl font-black text-gradient-purple tracking-tight">
@@ -416,7 +418,7 @@ export default function Home() {
                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gradient-to-br from-violet-500/20 to-pink-500/10 -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
                 <div className="flex items-center gap-3 mb-5 relative z-10">
                   <div className="p-2.5 rounded-xl icon-badge-purple">
-                    <TrendingUp className="h-5 w-5" />
+                    <Icon icon="mdi:trending-up" className="h-5 w-5" />
                   </div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-white/40">Canal Dominante</h3>
                 </div>
@@ -437,7 +439,7 @@ export default function Home() {
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <PieChart className="h-5 w-5 text-white/30 mb-1" />
+                    <Icon icon="mdi:chart-pie" className="h-5 w-5 text-white/30 mb-1" />
                     <span className="text-[10px] font-bold text-white/30 uppercase">Canais</span>
                   </div>
                 </div>

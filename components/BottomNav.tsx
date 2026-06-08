@@ -3,34 +3,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home, Trophy, Calendar, Medal,
-  History, BarChart2, Users, Settings, User, Grid3X3
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ADMIN_PRIMARY = [
-  { nome: "Home",      caminho: "/",          icone: Home,     cor: "#f97316" },
-  { nome: "Ranking",   caminho: "/ranking",   icone: Trophy,   cor: "#facc15" },
-  { nome: "Histórico", caminho: "/historico", icone: History,  cor: "#60a5fa" },
-  { nome: "Relatório", caminho: "/relatorio", icone: BarChart2, cor: "#a78bfa" },
-  { nome: "Mais",      caminho: "__mais__",   icone: Grid3X3,  cor: "#94a3b8" },
+  { nome: "Home",      caminho: "/",          icone: "line-md:home-md",    cor: "#f97316" },
+  { nome: "Ranking",   caminho: "/ranking",   icone: "mdi:trophy",         cor: "#facc15" },
+  { nome: "Histórico", caminho: "/historico", icone: "line-md:watch-loop", cor: "#60a5fa" },
+  { nome: "Relatório", caminho: "/relatorio", icone: "mdi:chart-bar",      cor: "#a78bfa" },
+  { nome: "Mais",      caminho: "__mais__",   icone: "line-md:grid-3",     cor: "#94a3b8" },
 ];
 
 const ADMIN_MAIS = [
-  { nome: "Calendário",   caminho: "/calendario",   icone: Calendar, cor: "#2dd4bf" },
-  { nome: "Premiações",   caminho: "/premiacoes",   icone: Medal,    cor: "#f472b6" },
-  { nome: "Equipe",       caminho: "/equipe",        icone: Users,    cor: "#34d399" },
-  { nome: "Configuração", caminho: "/configuracao",  icone: Settings, cor: "#fb7185" },
+  { nome: "Calendário",   caminho: "/calendario",   icone: "line-md:calendar",            cor: "#2dd4bf" },
+  { nome: "Premiações",   caminho: "/premiacoes",   icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
+  { nome: "Equipe",       caminho: "/equipe",        icone: "mdi:account-group",           cor: "#34d399" },
+  { nome: "Configuração", caminho: "/configuracao",  icone: "line-md:cog-loop",            cor: "#fb7185" },
 ];
 
 const USER_TABS = [
-  { nome: "Painel",      caminho: "/meu-painel", icone: User,     cor: "#f97316" },
-  { nome: "Ranking",     caminho: "/ranking",    icone: Trophy,   cor: "#facc15" },
-  { nome: "Calendário",  caminho: "/calendario", icone: Calendar, cor: "#2dd4bf" },
-  { nome: "Premiações",  caminho: "/premiacoes", icone: Medal,    cor: "#f472b6" },
+  { nome: "Painel",      caminho: "/meu-painel", icone: "line-md:account",             cor: "#f97316" },
+  { nome: "Ranking",     caminho: "/ranking",    icone: "mdi:trophy",                  cor: "#facc15" },
+  { nome: "Calendário",  caminho: "/calendario", icone: "line-md:calendar",            cor: "#2dd4bf" },
+  { nome: "Premiações",  caminho: "/premiacoes", icone: "line-md:star-pulsating-loop", cor: "#f472b6" },
 ];
 
 export function BottomNav() {
@@ -97,7 +93,7 @@ export function BottomNav() {
                         border: `1px solid ${ativo ? item.cor + "40" : "rgba(255,255,255,0.06)"}`,
                       }}
                     >
-                      <item.icone className="h-5 w-5" style={{ color: ativo ? item.cor : "#6b7280" }} />
+                      <Icon icon={item.icone} className="h-5 w-5" style={{ color: ativo ? item.cor : "#6b7280" }} />
                     </div>
                     <span className="text-[10px] font-semibold" style={{ color: ativo ? item.cor : "#6b7280" }}>
                       {item.nome}
@@ -141,7 +137,7 @@ export function BottomNav() {
                       border: `1px solid ${maisOpen ? "rgba(148,163,184,0.3)" : "transparent"}`,
                     }}
                   >
-                    <Grid3X3 className="h-5 w-5 transition-colors" style={{ color: maisOpen ? "#94a3b8" : "#4b5563" }} />
+                    <Icon icon="line-md:grid-3" className="h-5 w-5 transition-colors" style={{ color: maisOpen ? "#94a3b8" : "#4b5563" }} />
                   </div>
                   <span className="text-[10px] font-semibold transition-colors" style={{ color: maisOpen ? "#94a3b8" : "#4b5563" }}>
                     Mais
@@ -175,7 +171,8 @@ export function BottomNav() {
                     border: `1px solid ${ativo ? tab.cor + "35" : "transparent"}`,
                   }}
                 >
-                  <tab.icone
+                  <Icon
+                    icon={tab.icone}
                     className="h-5 w-5 transition-all"
                     style={{ color: ativo ? tab.cor : "#4b5563" }}
                   />

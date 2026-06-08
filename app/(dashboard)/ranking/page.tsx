@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Target, TrendingUp, AlertCircle, RefreshCw, X } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { PeriodoFilter } from "@/components/PeriodoFilter";
 import { BatalhaX1 } from "@/components/BatalhaX1";
 import { createClient } from "@/lib/supabase/client";
@@ -103,7 +103,7 @@ function RankingContent() {
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
-            <Trophy className="h-8 w-8 text-yellow-500" />
+            <Icon icon="mdi:trophy" className="h-8 w-8 text-yellow-500" />
             Ranking da Equipe
           </h2>
           <p className="text-neutral-400 mt-1">Os melhores performers do período selecionado</p>
@@ -131,7 +131,7 @@ function RankingContent() {
               className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white transition-colors"
               title="Encerrar Batalha"
             >
-              <X size={18} />
+              <Icon icon="line-md:close" className="h-[18px] w-[18px]" />
             </button>
             <BatalhaX1 rankings={rankings} />
           </motion.div>
@@ -147,7 +147,7 @@ function RankingContent() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center p-10 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-md text-center max-w-2xl mx-auto my-8"
           >
-            <AlertCircle className="h-10 w-10 text-red-400 mb-4 animate-bounce" />
+            <Icon icon="line-md:alert-circle-loop" className="h-10 w-10 text-red-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">Erro ao processar ranking</h3>
             <p className="text-sm text-neutral-400 mb-6">{error}</p>
             <button
@@ -155,7 +155,7 @@ function RankingContent() {
               onClick={loadRankings}
               className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white font-semibold rounded-md border border-white/10 hover:bg-white/20 transition-all text-sm"
             >
-              <RefreshCw className="h-4 w-4" /> Tentar Novamente
+              <Icon icon="mdi:reload" className="h-4 w-4" /> Tentar Novamente
             </button>
           </motion.div>
         ) : loading ? (
@@ -176,7 +176,7 @@ function RankingContent() {
             animate={{ opacity: 1 }}
             className="text-center py-20 border border-dashed border-white/10 rounded-xl bg-white/[0.02]"
           >
-            <Trophy className="h-12 w-12 text-neutral-600 mx-auto mb-4" />
+            <Icon icon="mdi:trophy" className="h-12 w-12 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-white">Nenhum dado encontrado</h3>
             <p className="text-neutral-400 text-sm mt-1">Não houve vendas registradas no período selecionado.</p>
           </motion.div>
@@ -204,7 +204,7 @@ function RankingContent() {
                       animate="show"
                       className="flex flex-col items-center group cursor-pointer"
                     >
-                      {pos === 1 && <Trophy className="h-8 w-8 text-yellow-500 mb-2 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />}
+                      {pos === 1 && <Icon icon="mdi:trophy" className="h-8 w-8 text-yellow-500 mb-2 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />}
                       <div
                         className={`w-12 h-12 rounded-full mb-3 flex items-center justify-center border-2 bg-black z-10 shadow-xl ${
                           pos === 1 ? "border-yellow-500 w-16 h-16" : "border-white/20"
@@ -242,7 +242,7 @@ function RankingContent() {
               animate={{ opacity: 1, x: 0 }}
             >
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                <Target className="h-5 w-5 text-neutral-400" />
+                <Icon icon="mdi:target" className="h-5 w-5 text-neutral-400" />
                 Na Perseguição
               </h3>
               <div className="space-y-4">
@@ -264,7 +264,7 @@ function RankingContent() {
                           </p>
                         </div>
                       </div>
-                      <TrendingUp className="h-4 w-4 text-purple-400" />
+                      <Icon icon="mdi:trending-up" className="h-4 w-4 text-purple-400" />
                     </div>
                   ))
                 ) : (

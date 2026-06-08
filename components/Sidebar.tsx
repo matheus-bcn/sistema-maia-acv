@@ -4,10 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Home, Trophy, Calendar, Medal,
-  History, BarChart2, Users, Settings, Tv, LogOut, User, Upload, Menu, X
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -87,19 +84,19 @@ export function Sidebar() {
   };
 
   const rotas = isAdmin ? [
-    { nome: "Home",        caminho: "/",            icone: Home },
-    { nome: "Ranking",     caminho: "/ranking",      icone: Trophy },
-    { nome: "Calendário",  caminho: "/calendario",   icone: Calendar },
-    { nome: "Premiações",  caminho: "/premiacoes",   icone: Medal },
-    { nome: "Histórico",   caminho: "/historico",    icone: History },
-    { nome: "Relatório",   caminho: "/relatorio",    icone: BarChart2 },
-    { nome: "Equipe",      caminho: "/equipe",       icone: Users },
-    { nome: "Configuração",caminho: "/configuracao", icone: Settings },
+    { nome: "Home",        caminho: "/",            icone: "line-md:home-md" },
+    { nome: "Ranking",     caminho: "/ranking",      icone: "mdi:trophy" },
+    { nome: "Calendário",  caminho: "/calendario",   icone: "line-md:calendar" },
+    { nome: "Premiações",  caminho: "/premiacoes",   icone: "line-md:star-pulsating-loop" },
+    { nome: "Histórico",   caminho: "/historico",    icone: "line-md:watch-loop" },
+    { nome: "Relatório",   caminho: "/relatorio",    icone: "mdi:chart-bar" },
+    { nome: "Equipe",      caminho: "/equipe",       icone: "mdi:account-group" },
+    { nome: "Configuração",caminho: "/configuracao", icone: "line-md:cog-loop" },
   ] : [
-    { nome: "Meu Painel",  caminho: "/meu-painel",  icone: User },
-    { nome: "Ranking",     caminho: "/ranking",      icone: Trophy },
-    { nome: "Calendário",  caminho: "/calendario",   icone: Calendar },
-    { nome: "Premiações",  caminho: "/premiacoes",   icone: Medal },
+    { nome: "Meu Painel",  caminho: "/meu-painel",  icone: "line-md:account" },
+    { nome: "Ranking",     caminho: "/ranking",      icone: "mdi:trophy" },
+    { nome: "Calendário",  caminho: "/calendario",   icone: "line-md:calendar" },
+    { nome: "Premiações",  caminho: "/premiacoes",   icone: "line-md:star-pulsating-loop" },
   ];
 
   return (
@@ -109,7 +106,7 @@ export function Sidebar() {
         className="md:hidden fixed top-4 left-4 z-[60] p-2 bg-white/5 backdrop-blur border border-white/10 rounded-xl text-white"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
-        {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+        <Icon icon={isMobileOpen ? "line-md:close" : "line-md:menu"} className="h-5 w-5" />
       </button>
 
       {isMobileOpen && (
@@ -145,7 +142,7 @@ export function Sidebar() {
               />
               {isAdmin && (
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition-opacity">
-                  <Upload className="text-white h-5 w-5" />
+                  <Icon icon="mdi:cloud-upload" className="text-white h-5 w-5" />
                 </div>
               )}
             </div>
@@ -169,7 +166,7 @@ export function Sidebar() {
                     ativo ? "nav-active" : "nav-inactive"
                   )}
                 >
-                  <rota.icone className={cn("h-4 w-4 flex-shrink-0", ativo ? "text-violet-300" : iconColor)} />
+                  <Icon icon={rota.icone} className={cn("h-4 w-4 flex-shrink-0", ativo ? "text-violet-300" : iconColor)} />
                   <span>{rota.nome}</span>
                   {ativo && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400" />
@@ -188,7 +185,7 @@ export function Sidebar() {
               href="/modo-tv"
               className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white bg-white/5 border border-white/8 hover:bg-white/10 transition-colors"
             >
-              <Tv className="h-4 w-4 text-emerald-400" />
+              <Icon icon="mdi:television" className="h-4 w-4 text-emerald-400" />
               Modo TV
             </Link>
           )}
@@ -197,7 +194,7 @@ export function Sidebar() {
             onClick={handleLogout}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/8 px-4 py-2.5 text-sm font-semibold text-white/40 hover:text-red-400 hover:bg-red-500/8 hover:border-red-500/20 transition-all"
           >
-            <LogOut className="h-4 w-4" />
+            <Icon icon="mdi:logout" className="h-4 w-4" />
             Sair
           </button>
         </div>
