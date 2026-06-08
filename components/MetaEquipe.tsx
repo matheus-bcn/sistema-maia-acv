@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Target } from "lucide-react";
 
 interface MetaEquipeProps {
   faturado: number;
@@ -25,47 +26,69 @@ export function MetaEquipe({ faturado, meta }: MetaEquipeProps) {
   const porcentagem = meta > 0 ? Math.min((faturado / meta) * 100, 100) : 0;
   const isBatida = faturado >= meta && meta > 0;
 
-  if (!mounted) return <div className="h-32 w-full mb-6 glass-card rounded-xl border border-white/10 bg-white/[0.02] animate-pulse" />;
+  if (!mounted) return <div className="h-28 w-full mb-4 glass-card rounded-2xl animate-pulse" />;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card rounded-xl p-6 mb-6 border border-purple-500/10 relative overflow-hidden"
+      className="glass-card rounded-2xl p-5 mb-4 relative overflow-hidden"
+      style={{
+        border: isBatida
+          ? "1px solid rgba(168,85,247,0.4)"
+          : "1px solid rgba(249,115,22,0.2)",
+      }}
     >
-      {isBatida && <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />}
+      {/* Glow de fundo quando meta batida */}
+      {isBatida && <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 to-pink-500/5 pointer-events-none" />}
 
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
-        <div>
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            Objetivo Global ({mesAtual})
-            {isBatida && <span className="text-xl">🔥</span>}
-          </h3>
-          <p className="text-sm text-neutral-400 mt-1">
-            Meta: R$ {meta.toLocaleString("pt-BR")}
-          </p>
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl icon-badge-orange">
+            <Target className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              Objetivo Global — {mesAtual}
+              {isBatida && <span>🔥</span>}
+            </h3>
+            <p className="text-xs text-white/40 mt-0.5">
+              Meta: R$ {meta.toLocaleString("pt-BR")}
+            </p>
+          </div>
         </div>
-        <div className="text-left md:text-right">
-          <p className={`text-4xl font-black tracking-tighter ${isBatida ? "text-purple-400 drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]" : "text-white"}`}>
-            {porcentagem.toFixed(1)}%
-          </p>
-        </div>
+        <p className={`text-3xl font-black tracking-tighter ${isBatida ? "text-gradient-purple" : "text-gradient-orange"}`}>
+          {porcentagem.toFixed(1)}%
+        </p>
       </div>
 
-      <div className="h-5 w-full bg-black/60 rounded-full overflow-hidden border border-white/5 relative z-10 shadow-inner">
+      <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative z-10">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${porcentagem}%` }}
-          transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
-          className={`h-full rounded-full relative ${isBatida ? "bg-gradient-to-r from-purple-600 to-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.8)]" : "bg-gradient-to-r from-indigo-600 to-purple-500"}`}
+          transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+          className="h-full rounded-full relative"
+          style={{
+            background: isBatida
+              ? "linear-gradient(90deg, #7c3aed, #ec4899)"
+              : "linear-gradient(90deg, #f97316, #eab308)",
+            boxShadow: isBatida
+              ? "0 0 20px rgba(168,85,247,0.6)"
+              : "0 0 20px rgba(249,115,22,0.5)",
+          }}
         >
-          <div className="absolute top-0 right-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-white/40 rounded-full" />
+          <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/30 rounded-full" />
         </motion.div>
       </div>
 
       {isBatida && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }} className="text-sm text-fuchsia-400 font-bold mt-4 text-center z-10 relative drop-shadow-md">
-          🎉 LEVEL UP! A META FOI SUPERADA!
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-xs text-violet-400 font-bold mt-3 text-center z-10 relative"
+        >
+          🎉 LEVEL UP! META SUPERADA!
         </motion.p>
       )}
     </motion.div>

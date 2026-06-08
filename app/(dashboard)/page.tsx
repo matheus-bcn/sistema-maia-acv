@@ -17,7 +17,7 @@ import { MaiaBriefing } from "@/components/MaiaBriefing";
 import { MetaEquipe } from "@/components/MetaEquipe";
 import { NovaVendaModal } from "@/components/NovaVendaModal";
 import { dispararGritoDeGol } from "@/lib/utils";
-import { Users, Upload, Plus, AlertCircle, RefreshCw, Calendar as CalendarIcon, X, Target, Banknote, PieChart, TrendingUp, LayoutDashboard } from "lucide-react";
+import { Users, Upload, Plus, AlertCircle, RefreshCw, Calendar as CalendarIcon, X, Target, Banknote, PieChart, TrendingUp, LayoutDashboard, DollarSign, Star, ShoppingCart, Clock } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import type { ChartPoint, SellerRanking } from "@/types";
 
@@ -254,11 +254,13 @@ export default function Home() {
     <>
       <header className="mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between relative z-50">
         <div>
-          <h2 className="text-4xl font-black tracking-tight flex items-center gap-3 text-white">
-            <LayoutDashboard className="h-8 w-8 text-purple-500" />
-            Dashboard
+          <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
+            <div className="p-2 rounded-xl icon-badge-orange">
+              <LayoutDashboard className="h-6 w-6" />
+            </div>
+            <span className="text-white">Dashboard</span>
           </h2>
-          <p className="text-neutral-400 mt-1">Acompanhamento de Vendas da Equipe</p>
+          <p className="text-white/40 mt-1 text-sm">Acompanhamento de Vendas da Equipe</p>
         </div>
 
         <div className="flex flex-wrap gap-4 items-center w-full sm:w-auto">
@@ -287,12 +289,12 @@ export default function Home() {
             </AnimatePresence>
           </div>
 
-          <div className="flex gap-4 ml-auto sm:ml-0">
-            <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 rounded-md border border-white/10 bg-black/40 px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 backdrop-blur-md">
-              <Upload className="h-4 w-4" /> Importar Relatório
+          <div className="flex gap-3 ml-auto sm:ml-0">
+            <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold transition-all hover:bg-white/10 hover:border-white/20 backdrop-blur-md">
+              <Upload className="h-4 w-4 text-white/60" /> Importar Relatório
             </button>
-            <button onClick={() => setIsNovaVendaOpen(true)} className="flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:bg-neutral-200 hover:scale-105">
-              <Plus className="h-4 w-4 font-bold" /> Nova Venda
+            <button onClick={() => setIsNovaVendaOpen(true)} className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold btn-gradient-orange">
+              <Plus className="h-4 w-4" /> Nova Venda
             </button>
           </div>
         </div>
@@ -314,35 +316,65 @@ export default function Home() {
         ) : (
           <motion.div key="content" variants={containerVariants} initial="hidden" animate="show" className="grid gap-6 relative z-10">
             
-            <div className="grid gap-6 md:grid-cols-4">
-              <motion.div variants={itemVariants} className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
-                <span className="text-sm font-medium text-neutral-400">Total Faturado</span>
-                <p className="text-3xl font-bold mt-2 text-purple-400">R$ {data.totalFaturado.toLocaleString("pt-BR")}</p>
-              </motion.div>
-
-              <motion.div 
-                variants={itemVariants} 
-                role={data.topSeller ? "button" : undefined} 
-                onClick={() => data.topSeller && setVendedorSelecionado(data.topSeller)} 
-                className={`glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-center ${data.topSeller ? "cursor-pointer group hover:border-purple-500/40 hover:bg-white/[0.04] transition-all" : ""}`}
-              >
-                <span className="text-sm font-medium text-neutral-400 group-hover:text-white transition-colors">Vendedor Destaque</span>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold leading-tight">{data.topSeller?.seller.name ?? "—"}</p>
-                    {data.topSeller && <span className="text-xs text-purple-400 font-medium">Ver detalhes</span>}
+            <div className="grid gap-4 md:grid-cols-4">
+              {/* Card 1 — Faturamento (laranja) */}
+              <motion.div variants={itemVariants} className="kpi-orange rounded-2xl p-5 flex flex-col gap-3 transition-all cursor-default">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-orange-300/70">Total Faturado</span>
+                  <div className="p-2 rounded-lg icon-badge-orange">
+                    <DollarSign className="h-4 w-4" />
                   </div>
                 </div>
+                <p className="text-3xl font-black tracking-tight text-gradient-orange">
+                  R$ {data.totalFaturado.toLocaleString("pt-BR")}
+                </p>
+                <div className="h-px bg-gradient-to-r from-orange-500/30 to-transparent" />
+                <span className="text-xs text-orange-300/50 font-medium">Período selecionado</span>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
-                <span className="text-sm font-medium text-neutral-400">Quantidade de Vendas</span>
-                <p className="text-3xl font-bold mt-2">{data.qtdVendas} <span className="text-sm text-neutral-500 uppercase font-black">Unidades</span></p>
+              {/* Card 2 — Top Seller (pink) */}
+              <motion.div
+                variants={itemVariants}
+                role={data.topSeller ? "button" : undefined}
+                onClick={() => data.topSeller && setVendedorSelecionado(data.topSeller)}
+                className={`kpi-pink rounded-2xl p-5 flex flex-col gap-3 transition-all ${data.topSeller ? "cursor-pointer" : "cursor-default"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-pink-300/70">Destaque</span>
+                  <div className="p-2 rounded-lg icon-badge-pink">
+                    <Star className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 mt-1">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center icon-badge-pink flex-shrink-0">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-base font-black leading-tight text-white">{data.topSeller?.seller.name ?? "—"}</p>
+                    {data.topSeller && <span className="text-xs text-pink-400 font-semibold">Ver detalhes →</span>}
+                  </div>
+                </div>
+                <div className="h-px bg-gradient-to-r from-pink-500/30 to-transparent" />
+                <span className="text-xs text-pink-300/50 font-medium">Melhor vendedor</span>
               </motion.div>
 
+              {/* Card 3 — Qtd Vendas (teal) */}
+              <motion.div variants={itemVariants} className="kpi-teal rounded-2xl p-5 flex flex-col gap-3 transition-all cursor-default">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-teal-300/70">Qtd. Vendas</span>
+                  <div className="p-2 rounded-lg icon-badge-teal">
+                    <ShoppingCart className="h-4 w-4" />
+                  </div>
+                </div>
+                <p className="text-3xl font-black tracking-tight text-gradient-teal">
+                  {data.qtdVendas}
+                  <span className="text-sm font-bold ml-2 text-teal-300/60">unid.</span>
+                </p>
+                <div className="h-px bg-gradient-to-r from-teal-500/30 to-transparent" />
+                <span className="text-xs text-teal-300/50 font-medium">No período</span>
+              </motion.div>
+
+              {/* Card 4 — Fechamento (azul) */}
               <motion.div variants={itemVariants}><ContagemFechamento /></motion.div>
             </div>
 
@@ -352,24 +384,28 @@ export default function Home() {
               <motion.div variants={itemVariants}><TermometroDiasUteis meta={data.metaGlobal} faturado={data.totalFaturado} /></motion.div>
 
               <motion.div variants={itemVariants} className="h-full">
-                <div className="glass-card rounded-xl border border-white/5 bg-white/[0.02] p-6 h-full min-h-[340px] flex flex-col justify-between">
+                <div className="glass-card rounded-2xl border border-white/5 p-6 h-full min-h-[340px] flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2.5 rounded-lg border border-white/10 bg-white/5 text-blue-400"><Banknote className="h-5 w-5" /></div>
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400">Inteligência de Vendas</h3>
+                      <div className="p-2.5 rounded-xl icon-badge-teal"><Banknote className="h-5 w-5" /></div>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-white/40">Inteligência de Vendas</h3>
                     </div>
                     <div className="mb-6">
-                      <p className="text-neutral-500 text-sm mb-1 font-bold uppercase tracking-wider">Ticket Médio (Por Venda)</p>
-                      <span className="text-4xl font-black text-white tracking-tighter">R$ {metricasQualidade.ticketMedio.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                      <p className="text-white/30 text-xs mb-2 font-bold uppercase tracking-wider">Ticket Médio</p>
+                      <span className="text-4xl font-black tracking-tighter text-gradient-teal">
+                        R$ {metricasQualidade.ticketMedio.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                      </span>
                     </div>
                   </div>
-                  <div className="bg-black/40 rounded-xl p-5 border border-white/5">
+                  <div className="rounded-xl p-4 border border-violet-500/15 bg-violet-500/5">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-neutral-400" />
-                      <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Média Diária Faturada</span>
+                      <Target className="h-4 w-4 text-violet-400" />
+                      <span className="text-xs font-bold text-white/40 uppercase tracking-widest">Média Diária</span>
                     </div>
-                    <span className="text-2xl font-black text-purple-400 tracking-tight">R$ {metricasQualidade.mediaDiaria.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
-                    <p className="text-[10px] text-neutral-500 mt-2 font-medium">Calculado com base nos dias úteis trabalhados até o momento.</p>
+                    <span className="text-2xl font-black text-gradient-purple tracking-tight">
+                      R$ {metricasQualidade.mediaDiaria.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                    </span>
+                    <p className="text-[10px] text-white/25 mt-2 font-medium">Com base nos dias úteis trabalhados até agora.</p>
                   </div>
                 </div>
               </motion.div>
@@ -377,51 +413,58 @@ export default function Home() {
               <motion.div variants={itemVariants}><TermometroRitmo meta={data.metaGlobal} faturado={data.totalFaturado} /></motion.div>
             </div>
 
-            <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-3 mt-2">
-              <div className="glass-card rounded-xl border border-white/5 bg-gradient-to-br from-white/[0.05] to-transparent p-8 lg:col-span-1 flex flex-col justify-center relative overflow-hidden">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/10 text-purple-400">
+            <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-3 mt-2">
+              <div className="glass-card rounded-2xl border border-violet-500/15 bg-gradient-to-br from-violet-500/10 to-pink-500/5 p-6 lg:col-span-1 flex flex-col justify-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gradient-to-br from-violet-500/20 to-pink-500/10 -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
+                <div className="flex items-center gap-3 mb-5 relative z-10">
+                  <div className="p-2.5 rounded-xl icon-badge-purple">
                     <TrendingUp className="h-5 w-5" />
                   </div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400">Canal Dominante</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-white/40">Canal Dominante</h3>
                 </div>
-                <p className="text-5xl font-black text-white mb-2">{canais.dominante}</p>
-                <p className="text-sm text-neutral-500 font-medium">Responsável pela maior fatia do faturamento no período selecionado.</p>
+                <p className="text-4xl font-black text-white mb-2 relative z-10">{canais.dominante}</p>
+                <p className="text-xs text-white/30 font-medium relative z-10">Maior fatia do faturamento no período.</p>
               </div>
 
-              <div className="glass-card rounded-xl border border-white/5 bg-white/[0.02] p-8 lg:col-span-2 flex flex-col sm:flex-row items-center gap-8">
-                <div className="relative w-48 h-48 flex-shrink-0">
+              <div className="glass-card rounded-2xl border border-white/5 p-6 lg:col-span-2 flex flex-col sm:flex-row items-center gap-8">
+                <div className="relative w-44 h-44 flex-shrink-0">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#3b82f6" strokeWidth="12" />
-                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray={circumference} strokeDashoffset={comercialOffset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="rgba(99,102,241,0.15)" strokeWidth="10" />
+                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="url(#tealGrad)" strokeWidth="10" strokeDasharray={circumference} strokeDashoffset={comercialOffset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+                    <defs>
+                      <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#14b8a6" />
+                        <stop offset="100%" stopColor="#06b6d4" />
+                      </linearGradient>
+                    </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <PieChart className="h-6 w-6 text-neutral-500 mb-1" />
-                    <span className="text-xs font-bold text-neutral-400 uppercase">Divisão</span>
+                    <PieChart className="h-5 w-5 text-white/30 mb-1" />
+                    <span className="text-[10px] font-bold text-white/30 uppercase">Canais</span>
                   </div>
                 </div>
 
-                <div className="flex-1 w-full space-y-6">
+                <div className="flex-1 w-full space-y-5">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                        <span className="text-sm font-bold text-white uppercase tracking-wider">Comercial</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400"></div>
+                        <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Comercial</span>
                       </div>
-                      <span className="text-2xl font-black text-white">R$ {canais.comercial.toLocaleString('pt-BR')}</span>
+                      <span className="text-xl font-black text-white">R$ {canais.comercial.toLocaleString('pt-BR')}</span>
                     </div>
-                    <span className="text-3xl font-black text-purple-500">{canais.pctComercial.toFixed(1)}%</span>
+                    <span className="text-3xl font-black text-gradient-teal">{canais.pctComercial.toFixed(1)}%</span>
                   </div>
-                  <div className="w-full h-[1px] bg-white/10"></div>
+                  <div className="w-full h-px bg-white/8"></div>
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span className="text-sm font-bold text-white uppercase tracking-wider">Atendimento</span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-400 to-blue-400"></div>
+                        <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Atendimento</span>
                       </div>
-                      <span className="text-2xl font-black text-white">R$ {canais.atendimento.toLocaleString('pt-BR')}</span>
+                      <span className="text-xl font-black text-white">R$ {canais.atendimento.toLocaleString('pt-BR')}</span>
                     </div>
-                    <span className="text-3xl font-black text-blue-500">{canais.pctAtendimento.toFixed(1)}%</span>
+                    <span className="text-3xl font-black text-gradient-blue">{canais.pctAtendimento.toFixed(1)}%</span>
                   </div>
                 </div>
               </div>

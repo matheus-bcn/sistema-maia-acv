@@ -29,7 +29,6 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth');
-
   // REGRA 1: Se o usuário NÃO está logado
   if (!user) {
     // Se não está logado e NÃO está tentando acessar o login ou callback do Supabase, bloqueia e manda pro login
