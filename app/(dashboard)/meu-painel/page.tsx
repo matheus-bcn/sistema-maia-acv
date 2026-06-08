@@ -77,6 +77,7 @@ export default function MeuPainelPage() {
 
   // Calculadora de comissão
   const [calcInput, setCalcInput] = useState("");
+  const [calcModalOpen, setCalcModalOpen] = useState(false);
 
   // Estados da Batalha X1
   const [colegas, setColegas] = useState<any[]>([]);
@@ -301,8 +302,19 @@ export default function MeuPainelPage() {
           </p>
         </div>
 
-        {/* SELETOR DE PERÍODO */}
-        <div className="relative">
+        {/* BOTÕES DO HEADER */}
+        <div className="flex items-center gap-3">
+          {/* Botão Calculadora */}
+          <button
+            onClick={() => { setCalcInput(""); setCalcModalOpen(true); }}
+            className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-2.5 text-sm font-bold text-green-400 hover:bg-green-500/20 hover:border-green-500/50 transition-all"
+          >
+            <Icon icon="mdi:calculator" className="h-4 w-4" />
+            Calculadora
+          </button>
+
+          {/* SELETOR DE PERÍODO */}
+          <div className="relative">
           <button
             onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
             className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors backdrop-blur-md ${
@@ -357,17 +369,18 @@ export default function MeuPainelPage() {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </div>
       </header>
 
       {/* CARDS DE STATS */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-purple-500/10 to-transparent flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2.5 bg-purple-500/20 rounded-lg text-purple-400"><Icon icon="mdi:currency-usd" className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Meu Faturamento</h3>
           </div>
-          <p className="text-3xl font-black text-purple-400">R$ {totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-black text-purple-400">R$ {totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
@@ -375,7 +388,7 @@ export default function MeuPainelPage() {
             <div className="p-2.5 bg-blue-500/10 rounded-lg text-blue-400"><Icon icon="mdi:trending-up" className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Ticket Médio</h3>
           </div>
-          <p className="text-3xl font-black text-white">R$ {ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-black text-white">R$ {ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-2xl p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between">
@@ -383,7 +396,7 @@ export default function MeuPainelPage() {
             <div className="p-2.5 bg-yellow-500/10 rounded-lg text-yellow-400"><Icon icon="mdi:star-circle" className="h-5 w-5" /></div>
             <h3 className="text-xs font-bold text-neutral-400 uppercase">Minha Meta</h3>
           </div>
-          <p className="text-3xl font-black text-white">R$ {metaIndividual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-black text-white">R$ {metaIndividual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className={`glass-card rounded-2xl p-6 border flex flex-col justify-between ${faltaParaMeta <= 0 ? "border-purple-500/30 bg-purple-500/5" : "border-white/5 bg-white/[0.02]"}`}>
@@ -394,25 +407,10 @@ export default function MeuPainelPage() {
             <h3 className="text-xs font-bold text-neutral-400 uppercase">{faltaParaMeta <= 0 ? "Meta Batida!" : "Falta para Meta"}</h3>
           </div>
           {faltaParaMeta > 0 ? (
-            <p className="text-3xl font-black text-white">R$ {faltaParaMeta.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
+            <p className="text-2xl font-black text-white">R$ {faltaParaMeta.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
           ) : (
-            <p className="text-3xl font-black text-purple-400">+R$ {Math.abs(faltaParaMeta).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
+            <p className="text-2xl font-black text-purple-400">+R$ {Math.abs(faltaParaMeta).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
           )}
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className={`glass-card rounded-2xl p-6 border flex flex-col justify-between ${metaBatida ? "border-green-500/30 bg-green-500/5" : "border-white/5 bg-white/[0.02]"}`}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`p-2.5 rounded-lg ${metaBatida ? "bg-green-500/20 text-green-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-              <Icon icon="mdi:cash-multiple" className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-neutral-400 uppercase">Comissão Est.</h3>
-              <p className="text-[10px] text-neutral-600">Progressiva por faixas</p>
-            </div>
-          </div>
-          <p className={`text-3xl font-black ${metaBatida ? "text-green-400" : "text-emerald-400"}`}>
-            R$ {comissaoEstimada.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </p>
         </motion.div>
       </div>
 
@@ -437,136 +435,151 @@ export default function MeuPainelPage() {
         <GraficoComparativoDiario data={chartData} startDate={periodo.inicio} />
       </div>
 
-      {/* CALCULADORA DE COMISSÃO */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
-        <div className="glass-card rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center gap-3 p-6 border-b border-white/5">
-            <div className="p-2.5 bg-green-500/10 rounded-xl border border-green-500/20">
-              <Icon icon="mdi:calculator" className="h-5 w-5 text-green-400" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-white">Calculadora de Comissão</h3>
-              <p className="text-[11px] text-neutral-500">Progressiva por faixas — até R$ 20k: sem comissão</p>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-5">
-            {/* Input */}
-            <div>
-              <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
-                Quanto você vendeu no mês?
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-neutral-400">R$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={calcInput}
-                  onChange={(e) => setCalcInput(formatMoeda(e.target.value))}
-                  placeholder="0,00"
-                  className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-3.5 text-lg font-black text-white outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500/30 transition-all placeholder:text-neutral-700"
-                />
-              </div>
-            </div>
-
-            {/* Resultado */}
-            <AnimatePresence mode="wait">
-              {calcValor <= 0 ? (
-                <motion.p key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="text-xs text-neutral-600 italic text-center py-2">
-                  Digite um valor para calcular a comissão
-                </motion.p>
-              ) : calcValor <= 20000 ? (
-                <motion.div key="zero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="rounded-xl p-4 border border-orange-500/20 bg-orange-500/5 flex items-center gap-3">
-                  <Icon icon="mdi:information-outline" className="h-5 w-5 text-orange-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-bold text-orange-300">Sem comissão</p>
-                    <p className="text-xs text-neutral-500 mt-0.5">A comissão começa a partir de R$ 20.000,01 vendidos.</p>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div key="resultado" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="space-y-3">
-                  {/* Breakdown por faixa */}
-                  <div className="space-y-2">
-                    {calcResultado.detalhes.map((d, i) => (
-                      <motion.div
-                        key={d.label}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.06 }}
-                        className="flex items-center justify-between rounded-xl px-4 py-3 border"
-                        style={{ background: `${d.cor}08`, borderColor: `${d.cor}25` }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.cor }} />
-                          <div>
-                            <p className="text-xs font-bold text-white">{d.label}</p>
-                            <p className="text-[10px] text-neutral-500">
-                              {d.taxa}% × R$ {d.base.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-sm font-black" style={{ color: d.cor }}>
-                          + R$ {d.comissao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </p>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Total */}
-                  <div className="rounded-xl p-4 border border-green-500/30 bg-green-500/8 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icon icon="mdi:cash-check" className="h-5 w-5 text-green-400" />
-                      <span className="text-sm font-black text-white uppercase tracking-wide">Total de Comissão</span>
+      {/* MODAL CALCULADORA DE COMISSÃO */}
+      <AnimatePresence>
+        {calcModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm"
+              onClick={() => setCalcModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="fixed inset-0 z-[90] flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div
+                className="w-full max-w-md pointer-events-auto rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+                style={{ background: "rgba(8,10,18,0.98)" }}
+              >
+                {/* Header modal */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-green-500/10 border border-green-500/20">
+                      <Icon icon="mdi:calculator" className="h-5 w-5 text-green-400" />
                     </div>
-                    <p className="text-2xl font-black text-green-400">
-                      R$ {calcResultado.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </p>
+                    <div>
+                      <h3 className="text-base font-black text-white">Calculadora de Comissão</h3>
+                      <p className="text-[10px] text-neutral-500">Progressiva por faixas · até R$ 20k sem comissão</p>
+                    </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <button onClick={() => setCalcModalOpen(false)} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+                    <Icon icon="line-md:close" className="h-4 w-4 text-neutral-400" />
+                  </button>
+                </div>
 
-            {/* Tabela de referência */}
-            <details className="group">
-              <summary className="text-[11px] text-neutral-600 hover:text-neutral-400 cursor-pointer transition-colors list-none flex items-center gap-1.5">
-                <Icon icon="mdi:chevron-right" className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
-                Ver tabela de faixas
-              </summary>
-              <div className="mt-3 rounded-xl overflow-hidden border border-white/5">
-                <table className="w-full text-xs">
-                  <thead className="bg-white/[0.03]">
-                    <tr>
-                      <th className="text-left px-4 py-2.5 text-neutral-500 font-semibold">Faixa</th>
-                      <th className="text-center px-4 py-2.5 text-neutral-500 font-semibold">Taxa</th>
-                      <th className="text-right px-4 py-2.5 text-neutral-500 font-semibold">Máx. nessa faixa</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    <tr className="bg-white/[0.01]">
-                      <td className="px-4 py-2.5 text-neutral-400">Até R$ 20.000</td>
-                      <td className="px-4 py-2.5 text-center text-neutral-600">0%</td>
-                      <td className="px-4 py-2.5 text-right text-neutral-600">R$ 0</td>
-                    </tr>
-                    {FAIXAS_COMISSAO.map((f) => (
-                      <tr key={f.label} className="bg-white/[0.01]">
-                        <td className="px-4 py-2.5 font-bold" style={{ color: f.cor }}>{f.label}</td>
-                        <td className="px-4 py-2.5 text-center font-black" style={{ color: f.cor }}>{f.taxa * 100}%</td>
-                        <td className="px-4 py-2.5 text-right text-neutral-400">
-                          {f.max === Infinity ? "Ilimitado" : `R$ ${((f.max - f.min) * f.taxa).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {/* Corpo modal */}
+                <div className="p-6 space-y-5">
+                  {/* Input */}
+                  <div>
+                    <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                      Quanto você vendeu no mês?
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-neutral-500">R$</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={calcInput}
+                        onChange={(e) => setCalcInput(formatMoeda(e.target.value))}
+                        placeholder="0,00"
+                        autoFocus
+                        className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-4 text-2xl font-black text-white outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500/30 transition-all placeholder:text-neutral-700"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Resultado */}
+                  <AnimatePresence mode="wait">
+                    {calcValor <= 0 ? (
+                      <motion.p key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="text-xs text-neutral-600 italic text-center py-3">
+                        Digite um valor acima para ver o cálculo
+                      </motion.p>
+                    ) : calcValor <= 20000 ? (
+                      <motion.div key="zero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="rounded-xl p-4 border border-orange-500/20 bg-orange-500/5 flex items-center gap-3">
+                        <Icon icon="mdi:information-outline" className="h-5 w-5 text-orange-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-bold text-orange-300">Sem comissão</p>
+                          <p className="text-xs text-neutral-500 mt-0.5">A comissão começa a partir de R$ 20.000,01.</p>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="resultado" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="space-y-2">
+                        {calcResultado.detalhes.map((d, i) => (
+                          <motion.div key={d.label}
+                            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.07 }}
+                            className="flex items-center justify-between rounded-xl px-4 py-3 border"
+                            style={{ background: `${d.cor}08`, borderColor: `${d.cor}25` }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.cor }} />
+                              <div>
+                                <p className="text-xs font-bold text-white">{d.label}</p>
+                                <p className="text-[10px] text-neutral-500">{d.taxa}% × R$ {d.base.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
+                              </div>
+                            </div>
+                            <p className="text-sm font-black" style={{ color: d.cor }}>
+                              + R$ {d.comissao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </p>
+                          </motion.div>
+                        ))}
+
+                        {/* Total */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: calcResultado.detalhes.length * 0.07 }}
+                          className="flex items-center justify-between rounded-xl px-4 py-4 border border-green-500/30 bg-green-500/10 mt-1"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon icon="mdi:cash-check" className="h-5 w-5 text-green-400" />
+                            <span className="text-sm font-black text-white uppercase tracking-wide">Total</span>
+                          </div>
+                          <p className="text-2xl font-black text-green-400">
+                            R$ {calcResultado.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Tabela de referência */}
+                  <details className="group">
+                    <summary className="text-[11px] text-neutral-600 hover:text-neutral-400 cursor-pointer transition-colors list-none flex items-center gap-1.5">
+                      <Icon icon="mdi:chevron-right" className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
+                      Ver tabela de faixas
+                    </summary>
+                    <div className="mt-3 rounded-xl overflow-hidden border border-white/5">
+                      <table className="w-full text-xs">
+                        <thead className="bg-white/[0.03]">
+                          <tr>
+                            <th className="text-left px-4 py-2 text-neutral-500 font-semibold">Faixa</th>
+                            <th className="text-center px-4 py-2 text-neutral-500 font-semibold">Taxa</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          <tr><td className="px-4 py-2 text-neutral-500">Até R$ 20.000</td><td className="px-4 py-2 text-center text-neutral-600">0%</td></tr>
+                          {FAIXAS_COMISSAO.map((f) => (
+                            <tr key={f.label}>
+                              <td className="px-4 py-2 font-bold" style={{ color: f.cor }}>{f.label}</td>
+                              <td className="px-4 py-2 text-center font-black" style={{ color: f.cor }}>{f.taxa * 100}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
               </div>
-            </details>
-          </div>
-        </div>
-      </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ARENA DE BATALHA X1 */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
