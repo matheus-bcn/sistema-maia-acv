@@ -12,14 +12,19 @@ import {
   RefreshCw,
   Sparkles,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { PeriodoFilter } from "@/components/PeriodoFilter";
+import { MAIAChat } from "@/components/MAIAChat";
 import { createClient } from "@/lib/supabase/client";
 import { getDashboardStats } from "@/lib/data/dashboard";
 import { getSellerRankings, getSellerDiagnostics } from "@/lib/data/sellers";
 import { generateInsights } from "@/lib/data/insights";
 import { analisarRelatorioAction } from "@/lib/actions/ai-actions";
+import type { ContextoMAIA } from "@/lib/actions/ai-actions";
 import type { InsightItem } from "@/types";
+
+type Aba = "analise" | "chat";
 
 const iconMap = {
   sucesso: Zap,
@@ -27,7 +32,6 @@ const iconMap = {
   info: TrendingUp,
 };
 
-// P1 - Skeletons para evitar Layout Shift
 const SkeletonStatCard = () => (
   <div className="glass-card rounded-xl p-6 animate-pulse bg-white/[0.02] border border-white/5">
     <div className="h-4 w-32 bg-white/10 rounded mb-4" />
@@ -59,25 +63,25 @@ const SkeletonDiagnostic = () => (
 export default function RelatorioPage() {
   const supabase = useMemo(() => createClient(), []);
 
+  const [aba, setAba] = useState<Aba>("analise");
   const [insights, setInsights] = useState<InsightItem[]>([]);
   const [diagnosticos, setDiagnosticos] = useState<
     Awaited<ReturnType<typeof getSellerDiagnostics>>
   >([]);
   const [total, setTotal] = useState(0);
-  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para a IA do Gemini
   const [insightIA, setInsightIA] = useState<string | null>(null);
   const [loadingIA, setLoadingIA] = useState(false);
 
-  // P0 - Filtro de período (Padrão: Mês Corrente)
+  const [contextoChat, setContextoChat] = useState<ContextoMAIA | null>(null);
+
   const [periodo, setPeriodo] = useState(() => {
     const now = new Date();
     return {
-      inicio: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
-      fim: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+      inicio: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0],
+      fim: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0],
     };
   });
 
@@ -87,16 +91,15 @@ export default function RelatorioPage() {
     setInsightIA(null);
 
     try {
-      // P0 - Injetando as datas nas funções de busca
       const [stats, rankings, diag] = await Promise.all([
         getDashboardStats(supabase, periodo.inicio, periodo.fim),
         getSellerRankings(supabase, periodo.inicio, periodo.fim),
         getSellerDiagnostics(supabase, periodo.inicio, periodo.fim),
       ]);
-      
+
       setTotal(stats.totalFaturado);
       setDiagnosticos(diag);
-      
+
       const ins = await generateInsights(
         supabase,
         rankings,
@@ -105,27 +108,55 @@ export default function RelatorioPage() {
         periodo.inicio,
         periodo.fim
       );
-      
       setInsights(ins);
-      setLoading(false); // Libera o carregamento principal
 
-      // Dispara a IA em background para não travar a tela
+      const ctx: ContextoMAIA = {
+        periodo,
+        stats: {
+          totalFaturado: stats.totalFaturado,
+          metaGlobal: stats.metaGlobal,
+          qtdVendas: stats.qtdVendas,
+        },
+        rankings: rankings.map((r) => ({
+          nome: r.seller.name,
+          faturado: r.totalSales,
+          vendas: r.salesCount,
+          posicao: r.position,
+        })),
+        diagnosticos: diag.map((d) => ({
+          nome: d.nome,
+          realizado: d.realizado,
+          meta: d.meta,
+          status: d.status,
+        })),
+      };
+      setContextoChat(ctx);
+
+      setLoading(false);
+
       setLoadingIA(true);
-      
-      // Criamos um payload leve para a IA não gastar muitos tokens
       const payloadIA = {
+        periodo,
         faturamentoTotal: stats.totalFaturado,
         metaEquipe: stats.metaGlobal,
-        vendedores: diag.map(d => ({
+        totalVendas: stats.qtdVendas,
+        ticketMedio: stats.qtdVendas > 0 ? Math.round(stats.totalFaturado / stats.qtdVendas) : 0,
+        rankingTop3: rankings.slice(0, 3).map((r) => ({
+          nome: r.seller.name,
+          faturado: r.totalSales,
+          vendas: r.salesCount,
+        })),
+        vendedores: diag.map((d) => ({
           nome: d.nome,
-          percentual: Math.round((d.realizado / d.meta) * 100) || 0,
-          status: d.status
-        }))
+          percentualMeta: d.meta > 0 ? Math.round((d.realizado / d.meta) * 100) : 0,
+          status: d.status,
+          realizado: d.realizado,
+          meta: d.meta,
+        })),
       };
 
       const resultadoIA = await analisarRelatorioAction(payloadIA);
       if (resultadoIA.success) {
-        // CORREÇÃO APLICADA AQUI: Adicionado "|| null" para resolver o erro do TypeScript
         setInsightIA(resultadoIA.insight || null);
       }
     } catch (err) {
@@ -159,6 +190,29 @@ export default function RelatorioPage() {
         />
       </header>
 
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 bg-white/[0.03] border border-white/10 rounded-xl p-1 w-fit">
+        {(
+          [
+            { id: "analise" as Aba, label: "Análise", icon: BrainCircuit },
+            { id: "chat" as Aba, label: "Chat M.A.I.A", icon: MessageSquare },
+          ]
+        ).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setAba(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              aba === id
+                ? "bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <AnimatePresence mode="wait">
         {error ? (
           <motion.div
@@ -179,13 +233,32 @@ export default function RelatorioPage() {
               <RefreshCw className="h-4 w-4" /> Tentar Novamente
             </button>
           </motion.div>
+        ) : aba === "chat" ? (
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            {loading || !contextoChat ? (
+              <div className="flex items-center justify-center h-[640px] glass-card rounded-xl border border-fuchsia-500/20">
+                <div className="flex flex-col items-center gap-3 text-neutral-400">
+                  <Loader2 className="h-8 w-8 animate-spin text-fuchsia-400" />
+                  <p className="text-sm">Carregando dados da equipe para M.A.I.A...</p>
+                </div>
+              </div>
+            ) : (
+              <MAIAChat contexto={contextoChat} />
+            )}
+          </motion.div>
         ) : (
           <motion.div
-            key="content"
+            key="analise"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
+            {/* Stats */}
             <div className="grid gap-6 md:grid-cols-3 mb-6">
               {loading ? (
                 <>
@@ -213,26 +286,39 @@ export default function RelatorioPage() {
               )}
             </div>
 
-            {/* BLOCO DA INTELIGÊNCIA GEMINI AQUI */}
+            {/* Análise M.A.I.A */}
             {!loading && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card rounded-xl p-6 mb-6 border border-fuchsia-500/30 bg-purple-500/5 relative overflow-hidden"
               >
-                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-500"></div>
-                
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20">
-                    <Sparkles className="h-5 w-5 text-fuchsia-400" />
+                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-500" />
+
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20">
+                      <Sparkles className="h-5 w-5 text-fuchsia-400" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white uppercase tracking-wider">
+                      Análise de Dados M.A.I.A
+                    </h3>
                   </div>
-                  <h3 className="text-lg font-bold text-white uppercase tracking-wider">Análise de Dados M.A.I.A</h3>
+                  <button
+                    onClick={() => setAba("chat")}
+                    className="flex items-center gap-1.5 text-xs text-fuchsia-400 hover:text-fuchsia-300 border border-fuchsia-500/20 hover:border-fuchsia-500/40 rounded-lg px-3 py-1.5 transition-all"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Fazer perguntas
+                  </button>
                 </div>
-                
+
                 {loadingIA ? (
                   <div className="flex items-center gap-3 text-neutral-400 py-2">
                     <Loader2 className="h-5 w-5 animate-spin text-fuchsia-400" />
-                    <p className="text-sm font-medium">A Gemini está processando a performance da equipe...</p>
+                    <p className="text-sm font-medium">
+                      M.A.I.A está analisando a performance da equipe...
+                    </p>
                   </div>
                 ) : insightIA ? (
                   <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-line font-medium">
@@ -246,6 +332,7 @@ export default function RelatorioPage() {
               </motion.div>
             )}
 
+            {/* Insights + Diagnóstico */}
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="glass-card rounded-xl p-6 border border-white/5 bg-white/[0.02]">
                 <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
@@ -275,8 +362,12 @@ export default function RelatorioPage() {
                         >
                           <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${insight.corIcone}`} />
                           <div>
-                            <h4 className={`text-sm font-bold ${insight.corTexto}`}>{insight.titulo}</h4>
-                            <p className="text-sm text-neutral-300 mt-1 leading-relaxed">{insight.mensagem}</p>
+                            <h4 className={`text-sm font-bold ${insight.corTexto}`}>
+                              {insight.titulo}
+                            </h4>
+                            <p className="text-sm text-neutral-300 mt-1 leading-relaxed">
+                              {insight.mensagem}
+                            </p>
                           </div>
                         </motion.div>
                       );
@@ -303,24 +394,27 @@ export default function RelatorioPage() {
                     </p>
                   ) : (
                     diagnosticos.map((vend) => {
-                      const percentual = Math.round((vend.realizado / vend.meta) * 100) || 0;
+                      const percentual =
+                        vend.meta > 0 ? Math.round((vend.realizado / vend.meta) * 100) : 0;
                       const corBarra =
                         vend.status === "acima"
                           ? "bg-purple-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                           : vend.status === "abaixo"
-                            ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
-                            : "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]";
+                          ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                          : "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]";
                       const corTexto =
                         vend.status === "acima"
                           ? "text-purple-400"
                           : vend.status === "abaixo"
-                            ? "text-red-400"
-                            : "text-blue-400";
-                      
+                          ? "text-red-400"
+                          : "text-blue-400";
+
                       return (
                         <div key={vend.nome} className="group">
                           <div className="flex justify-between mb-2">
-                            <span className="font-semibold text-neutral-200 group-hover:text-white transition-colors">{vend.nome}</span>
+                            <span className="font-semibold text-neutral-200 group-hover:text-white transition-colors">
+                              {vend.nome}
+                            </span>
                             <span className={`text-sm font-bold ${corTexto}`}>{percentual}%</span>
                           </div>
                           <div className="h-2 w-full bg-neutral-800 rounded-full overflow-hidden border border-white/5">

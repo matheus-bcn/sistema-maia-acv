@@ -6,11 +6,22 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 type InsightTipo = "ALERTA" | "PARABENS" | "DICA" | "NEUTRO";
 
+export type MensagemHistorico = {
+  role: "user" | "model";
+  content: string;
+};
+
+export type ContextoMAIA = {
+  periodo: { inicio: string; fim: string };
+  stats: { totalFaturado: number; metaGlobal: number; qtdVendas: number };
+  rankings: { nome: string; faturado: number; vendas: number; posicao: number }[];
+  diagnosticos: { nome: string; realizado: number; meta: number; status: string }[];
+};
+
 function classificarTipo(stats: any): InsightTipo {
   const pct = stats.metaGlobal > 0 ? (stats.totalFaturado / stats.metaGlobal) * 100 : 0;
   if (pct >= 100) return "PARABENS";
   if (pct < 60)   return "ALERTA";
-  // Alterna entre DICA e NEUTRO para mais variedade
   return Math.random() > 0.5 ? "DICA" : "NEUTRO";
 }
 
@@ -94,23 +105,101 @@ export async function analisarRelatorioAction(dadosRelatorio: any) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `
-Você é M.A.I.A, assistente de inteligência comercial. Analise os dados abaixo e gere um relatório executivo em português brasileiro.
+    const d = dadosRelatorio;
+    const pct = d.metaEquipe > 0 ? ((d.faturamentoTotal / d.metaEquipe) * 100).toFixed(1) : "0";
+    const abaixo = (d.vendedores ?? []).filter((v: any) => v.status === "abaixo");
+    const acima = (d.vendedores ?? []).filter((v: any) => v.status === "acima");
 
-Dados: ${JSON.stringify(dadosRelatorio)}
+    const prompt = `Você é M.A.I.A, analista comercial inteligente. Analise estes dados e gere um relatório executivo conciso em português brasileiro.
 
-Formato obrigatório (texto corrido, sem markdown, sem asteriscos):
-- Parágrafo 1: situação geral da equipe vs meta (2 frases)
-- Parágrafo 2: destaque positivo e ponto de atenção (2 frases)
-- Parágrafo 3: recomendação estratégica para os próximos dias (1 frase)
+DADOS DO PERÍODO (${d.periodo?.inicio ?? ""} a ${d.periodo?.fim ?? ""}):
+- Faturamento: R$ ${d.faturamentoTotal?.toLocaleString("pt-BR") ?? 0}
+- Meta da equipe: R$ ${d.metaEquipe?.toLocaleString("pt-BR") ?? 0}
+- Atingimento: ${pct}%
+- Total de vendas: ${d.totalVendas ?? 0}
+- Ticket médio: R$ ${d.ticketMedio?.toLocaleString("pt-BR") ?? 0}
+- Vendedores acima da meta: ${acima.map((v: any) => `${v.nome} (${v.percentualMeta}%)`).join(", ") || "nenhum"}
+- Vendedores abaixo da meta: ${abaixo.map((v: any) => `${v.nome} (${v.percentualMeta}%)`).join(", ") || "nenhum"}
+- Top 3 ranking: ${(d.rankingTop3 ?? []).map((r: any) => `${r.nome}: R$ ${r.faturado?.toLocaleString("pt-BR")}`).join(", ")}
 
-Máximo 120 palavras no total. Tom: direto, analítico, motivador.`;
+Gere um relatório em 3 parágrafos curtos (texto corrido, sem markdown, sem asteriscos, sem listas):
+1. Situação geral da equipe vs meta
+2. Destaque de quem está performando bem e quem precisa de atenção com comparativo
+3. Recomendação estratégica específica para os próximos dias
+
+Máximo 150 palavras. Tom: direto, analítico e motivador.`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     return { success: true, insight: text };
   } catch (error: any) {
     console.error("Erro analisarRelatorioAction:", error?.message ?? error);
+    return { success: false, error: "Falha ao conectar com a IA." };
+  }
+}
+
+export async function chatComMAIAAction(
+  mensagem: string,
+  contexto: ContextoMAIA,
+  historico: MensagemHistorico[]
+) {
+  if (!process.env.GEMINI_API_KEY) {
+    return { success: false, error: "GEMINI_API_KEY não configurada." };
+  }
+
+  try {
+    const { periodo, stats, rankings, diagnosticos } = contexto;
+    const pct = stats.metaGlobal > 0
+      ? ((stats.totalFaturado / stats.metaGlobal) * 100).toFixed(1)
+      : "0";
+    const ticketMedio = stats.qtdVendas > 0
+      ? Math.round(stats.totalFaturado / stats.qtdVendas)
+      : 0;
+
+    const systemInstruction = `Você é M.A.I.A (Módulo de Análise e Inteligência Artificial), a analista comercial inteligente da equipe de vendas. Você tem acesso aos dados em tempo real da equipe.
+
+DADOS ATUAIS — Período: ${periodo.inicio} a ${periodo.fim}
+• Faturamento: R$ ${stats.totalFaturado.toLocaleString("pt-BR")}
+• Meta da equipe: R$ ${stats.metaGlobal.toLocaleString("pt-BR")}
+• Atingimento da meta: ${pct}%
+• Total de vendas: ${stats.qtdVendas}
+• Ticket médio: R$ ${ticketMedio.toLocaleString("pt-BR")}
+
+RANKING DE VENDEDORES:
+${rankings.map((r) => `${r.posicao}º ${r.nome}: R$ ${r.faturado.toLocaleString("pt-BR")} (${r.vendas} vendas)`).join("\n")}
+
+DIAGNÓSTICO INDIVIDUAL:
+${diagnosticos.map((d) => {
+  const p = d.meta > 0 ? Math.round((d.realizado / d.meta) * 100) : 0;
+  return `• ${d.nome}: ${p}% da meta — status: ${d.status === "acima" ? "acima da meta" : d.status === "abaixo" ? "abaixo da meta" : "no ritmo"}`;
+}).join("\n")}
+
+REGRAS DE COMPORTAMENTO:
+1. Responda APENAS perguntas sobre vendas, estratégias comerciais, performance de vendedores, metas, técnicas de negociação, gestão de equipes de vendas e temas diretamente relacionados ao negócio.
+2. Se perguntarem sobre temas não relacionados a vendas/comercial (política, entretenimento, culinária, etc.), recuse educadamente: "Minha especialidade é análise comercial. Posso ajudar com dados de vendas, estratégias e performance da equipe."
+3. Use sempre os dados reais fornecidos acima nas respostas.
+4. Compare vendedores quando relevante. Identifique padrões. Sugira ações concretas.
+5. Tom: direto, analítico, motivador e profissional.
+6. Respostas concisas (máximo 180 palavras), sem markdown excessivo — apenas texto corrido com ênfase natural.`;
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction,
+    });
+
+    const chat = model.startChat({
+      history: historico.map((m) => ({
+        role: m.role,
+        parts: [{ text: m.content }],
+      })),
+    });
+
+    const result = await chat.sendMessage(mensagem);
+    const resposta = result.response.text().trim();
+
+    return { success: true, resposta };
+  } catch (error: any) {
+    console.error("Erro chatComMAIAAction:", error?.message ?? error);
     return { success: false, error: "Falha ao conectar com a IA." };
   }
 }
