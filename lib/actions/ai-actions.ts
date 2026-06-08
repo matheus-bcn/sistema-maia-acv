@@ -65,7 +65,7 @@ export async function obterBriefingIAAction(stats: any) {
   const tipo = classificarTipo(stats);
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = PROMPTS[tipo](stats);
     const result = await model.generateContent(prompt);
     const rawText = result.response.text();
@@ -103,7 +103,7 @@ export async function analisarRelatorioAction(dadosRelatorio: any) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const d = dadosRelatorio;
     const pct = d.metaEquipe > 0 ? ((d.faturamentoTotal / d.metaEquipe) * 100).toFixed(1) : "0";
@@ -183,7 +183,7 @@ REGRAS DE COMPORTAMENTO:
 6. Respostas concisas (máximo 180 palavras), sem markdown excessivo — apenas texto corrido com ênfase natural.`;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash",
       systemInstruction,
     });
 
