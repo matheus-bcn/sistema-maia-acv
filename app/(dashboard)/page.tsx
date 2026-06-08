@@ -16,6 +16,7 @@ import { SkeletonCard, SkeletonChart } from "@/components/SkeletonCard";
 import { PerfilVendedorModal } from "@/components/PerfilVendedorModal";
 import { MaiaBriefing } from "@/components/MaiaBriefing";
 import { MetaEquipe } from "@/components/MetaEquipe";
+import { HistoricoInsights } from "@/components/HistoricoInsights";
 import { NovaVendaModal } from "@/components/NovaVendaModal";
 import { dispararGritoDeGol } from "@/lib/utils";
 import { Icon } from "@iconify/react";
@@ -179,10 +180,11 @@ export default function Home() {
         const briefingIA = await obterBriefingIAAction(stats);
 
         if (briefingIA.success) {
+          const r = briefingIA as any;
           const aiPayload: MaiaInsight = {
-            titulo: briefingIA.titulo,
-            briefing: briefingIA.briefing,
-            acao: briefingIA.acao
+            titulo: r.titulo,
+            briefing: r.briefing,
+            acao: r.acao,
           };
           
           setMensagemIA(aiPayload);
@@ -482,6 +484,11 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Histórico de Insights M.A.I.A */}
+      <div className="mt-6">
+        <HistoricoInsights />
+      </div>
 
       <AnimatePresence>
         {isImportModalOpen && <ImportadorIA isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onImported={() => carregarDados()} />}

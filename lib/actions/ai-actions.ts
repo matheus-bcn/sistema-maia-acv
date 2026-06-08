@@ -1,6 +1,7 @@
 "use server";
 
 import Groq from "groq-sdk";
+import { createClient } from "@/lib/supabase/server";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL = "llama-3.3-70b-versatile";
@@ -78,13 +79,26 @@ export async function obterBriefingIAAction(stats: any) {
     const cleanText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleanText);
 
-    return {
+    const result = {
       success: true,
       titulo: parsed.titulo,
       briefing: parsed.mensagem,
       acao: parsed.acao,
       tipo: (parsed.tipo ?? tipo) as InsightTipo,
     };
+
+    // Persiste o insight no histórico
+    try {
+      const supabase = await createClient();
+      await supabase.from("maia_insights").insert({
+        tipo: result.tipo,
+        titulo: result.titulo,
+        briefing: result.briefing,
+        acao: result.acao,
+      });
+    } catch { /* histórico é opcional */ }
+
+    return result;
   } catch (error) {
     console.error("Erro na IA:", error);
     const pct =
