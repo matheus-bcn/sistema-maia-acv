@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CustomerStats } from "@/types";
 
+// Clientes genéricos de balcão presencial — excluídos da análise de CRM
+// mas as vendas continuam contabilizadas normalmente nos totais
+const CLIENTES_IGNORADOS = /^cliente\s+balc[aã]o$/i;
+
 export async function getCustomerStats(
   supabase: SupabaseClient,
   startDate?: string,
@@ -31,7 +35,7 @@ export async function getCustomerStats(
 
   for (const row of data) {
     const name = (row.customer_name as string).trim();
-    if (!name) continue;
+    if (!name || CLIENTES_IGNORADOS.test(name)) continue;
     const entry = map.get(name) ?? {
       total_gasto: 0,
       total_compras: 0,
