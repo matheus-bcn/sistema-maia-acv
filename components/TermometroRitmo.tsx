@@ -6,30 +6,58 @@ import { Target, Zap } from "lucide-react"
 interface TermometroRitmoProps {
   meta: number
   faturado: number
+  inicio: string
+  fim: string
 }
 
-export function TermometroRitmo({ meta, faturado }: TermometroRitmoProps) {
+function parseLocalDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function TermometroRitmo({ meta, faturado, inicio, fim }: TermometroRitmoProps) {
   const [mounted, setMounted] = useState(false);
-  const [calculos, setCalculos] = useState({ projecao: 0, porcentagem: 0, atingimentoProjecao: 0 });
+  const [calculos, setCalculos] = useState({ projecao: 0, porcentagem: 0, atingimentoProjecao: 0, periodoEncerrado: false });
 
   useEffect(() => {
-    const hoje = new Date().getDate();
-    const ultimoDia = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-    const diasRestantes = ultimoDia - hoje;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
-    const projecao = hoje > 0 ? faturado + (faturado / hoje) * diasRestantes : faturado;
+    const dataInicio = parseLocalDate(inicio);
+    const dataFim = parseLocalDate(fim);
+
+    // Dias totais do período selecionado
+    const totalDias = Math.max(1, Math.round((dataFim.getTime() - dataInicio.getTime()) / 86400000) + 1);
+
+    // Dias decorridos dentro do período (até hoje ou até o fim, o que vier primeiro)
+    const limiteAtual = hoje <= dataFim ? hoje : dataFim;
+    const diasDecorridos = Math.max(1, Math.round((limiteAtual.getTime() - dataInicio.getTime()) / 86400000) + 1);
+
+    // Dias restantes no período (0 se o período já terminou)
+    const diasRestantes = hoje < dataFim
+      ? Math.round((dataFim.getTime() - hoje.getTime()) / 86400000)
+      : 0;
+
+    const periodoEncerrado = hoje > dataFim;
+
+    const projecao = periodoEncerrado
+      ? faturado
+      : diasDecorridos > 0
+        ? faturado + (faturado / diasDecorridos) * diasRestantes
+        : faturado;
+
     const porcentagem = meta > 0 ? Math.min((faturado / meta) * 100, 100) : 0;
     const atingimentoProjecao = meta > 0 ? (projecao / meta) * 100 : 0;
 
-    setCalculos({ projecao, porcentagem, atingimentoProjecao });
+    setCalculos({ projecao, porcentagem, atingimentoProjecao, periodoEncerrado });
     setMounted(true);
-  }, [faturado, meta]);
+  }, [faturado, meta, inicio, fim]);
 
   if (!mounted) {
-    return <div className="glass-card h-full min-h-[340px] rounded-xl border border-white/5 bg-white/[0.02] animate-pulse" />;
+    return <div className="glass-card h-full min-h-[340px] rounded-xl border border-white/5 animate-pulse" />;
   }
 
-  const { projecao, porcentagem, atingimentoProjecao } = calculos;
+  const { projecao, porcentagem, atingimentoProjecao, periodoEncerrado } = calculos;
 
   return (
     <div className="glass-card flex h-full flex-col justify-between rounded-xl p-6 relative overflow-hidden">
@@ -44,24 +72,26 @@ export function TermometroRitmo({ meta, faturado }: TermometroRitmoProps) {
         </div>
 
         <p className="text-4xl font-black text-white">{porcentagem.toFixed(1)}%</p>
-        <p className="text-xs text-neutral-400 uppercase tracking-tighter">Realizado até hoje</p>
+        <p className="text-xs text-neutral-400 uppercase tracking-tighter">
+          {periodoEncerrado ? "Realizado no período" : "Realizado até hoje"}
+        </p>
       </div>
 
       <div className="mt-8 space-y-6">
         <div className="p-4 rounded-lg bg-white/5 border border-white/10">
           <div className="flex items-center gap-2 mb-2">
             <Zap className="h-4 w-4 text-yellow-400" />
-            <span className="text-xs font-bold text-neutral-300">Tendência de Fechamento</span>
+            <span className="text-xs font-bold text-neutral-300">
+              {periodoEncerrado ? "Resultado Final" : "Tendência de Fechamento"}
+            </span>
           </div>
           <p className="text-2xl font-black text-white">
             R$ {projecao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
           </p>
-          <p
-            className={`text-xs font-bold mt-1 ${atingimentoProjecao >= 100 ? "text-purple-400" : "text-red-400"}`}
-          >
-            {atingimentoProjecao >= 100
-              ? "✓ Meta será superada"
-              : "⚠ Atenção: Tendência abaixo da meta"}
+          <p className={`text-xs font-bold mt-1 ${atingimentoProjecao >= 100 ? "text-purple-400" : "text-red-400"}`}>
+            {periodoEncerrado
+              ? (atingimentoProjecao >= 100 ? "✓ Meta foi atingida" : "✗ Meta não foi atingida")
+              : (atingimentoProjecao >= 100 ? "✓ Meta será superada" : "⚠ Tendência abaixo da meta")}
           </p>
         </div>
 

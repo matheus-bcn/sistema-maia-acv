@@ -381,7 +381,7 @@ export default function Home() {
             <MetaEquipe faturado={data.totalFaturado} meta={data.metaGlobal} />
 
             <div className="grid gap-6 lg:grid-cols-3">
-              <motion.div variants={itemVariants}><TermometroDiasUteis meta={data.metaGlobal} faturado={data.totalFaturado} /></motion.div>
+              <motion.div variants={itemVariants}><TermometroDiasUteis meta={data.metaGlobal} faturado={data.totalFaturado} inicio={periodo.inicio} fim={periodo.fim} /></motion.div>
 
               <motion.div variants={itemVariants} className="h-full">
                 <div className="glass-card rounded-2xl border border-white/5 p-6 h-full min-h-[340px] flex flex-col justify-between">
@@ -410,7 +410,7 @@ export default function Home() {
                 </div>
               </motion.div>
               
-              <motion.div variants={itemVariants}><TermometroRitmo meta={data.metaGlobal} faturado={data.totalFaturado} /></motion.div>
+              <motion.div variants={itemVariants}><TermometroRitmo meta={data.metaGlobal} faturado={data.totalFaturado} inicio={periodo.inicio} fim={periodo.fim} /></motion.div>
             </div>
 
             <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-3 mt-2">
