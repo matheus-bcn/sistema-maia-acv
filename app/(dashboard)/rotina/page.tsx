@@ -513,7 +513,7 @@ export default function RotinaPage() {
                   onChange={e => handleSellerChange(e.target.value || undefined)}
                   className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50 transition-all cursor-pointer"
                 >
-                  <option value="">Meu board</option>
+                  <option value="">Meu quadro</option>
                   {sellers.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
@@ -549,7 +549,7 @@ export default function RotinaPage() {
                   onClick={() => handleSellerChange(undefined)}
                   className="ml-auto text-violet-400 hover:text-white transition-colors text-xs font-bold"
                 >
-                  Voltar ao meu board
+                  Voltar ao meu quadro
                 </button>
               </div>
             </motion.div>
