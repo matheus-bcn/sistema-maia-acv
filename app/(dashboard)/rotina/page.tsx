@@ -33,7 +33,14 @@ import {
   moverCartaoAction,
   reordenarListasAction,
   reordenarCartoesAction,
+  listarVendedoresParaKanbanAction,
 } from "@/lib/actions/kanban";
+
+interface Seller {
+  id: string;
+  name: string;
+  avatar: string | null;
+}
 
 interface KanbanList {
   id: string;
@@ -311,6 +318,11 @@ export default function RotinaPage() {
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Admin seller selector
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [selectedSellerId, setSelectedSellerId] = useState<string | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [overListId, setOverListId] = useState<string | null>(null);
@@ -330,15 +342,30 @@ export default function RotinaPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const carregarDados = useCallback(async () => {
+  const carregarDados = useCallback(async (sellerId?: string) => {
     setLoading(true);
-    const data = await carregarRotinaAction();
+    const data = await carregarRotinaAction(sellerId);
     setLists(data.lists as KanbanList[]);
     setCards(data.cards as KanbanCard[]);
     setLoading(false);
   }, []);
 
-  useEffect(() => { carregarDados(); }, [carregarDados]);
+  useEffect(() => {
+    const init = async () => {
+      const sellerList = await listarVendedoresParaKanbanAction();
+      if (sellerList.length > 0) {
+        setIsAdmin(true);
+        setSellers(sellerList as Seller[]);
+      }
+      await carregarDados();
+    };
+    init();
+  }, [carregarDados]);
+
+  const handleSellerChange = async (sellerId: string | undefined) => {
+    setSelectedSellerId(sellerId);
+    await carregarDados(sellerId);
+  };
 
   const openModal = (type: typeof modal.type, opts?: { listId?: string; card?: KanbanCard; list?: KanbanList }) => {
     setInputTitle(type === "editList" ? (opts?.list?.title ?? "") : type === "editCard" ? (opts?.card?.title ?? "") : "");
@@ -353,26 +380,26 @@ export default function RotinaPage() {
     try {
       if (modal.type === "addList") {
         if (!inputTitle.trim()) return;
-        const res = await criarListaAction(inputTitle);
-        if (res.success) await carregarDados();
+        const res = await criarListaAction(inputTitle, selectedSellerId);
+        if (res.success) await carregarDados(selectedSellerId);
       } else if (modal.type === "editList" && modal.list) {
         if (!inputTitle.trim()) return;
         await editarListaAction(modal.list.id, inputTitle);
-        await carregarDados();
+        await carregarDados(selectedSellerId);
       } else if (modal.type === "deleteList" && modal.list) {
         await excluirListaAction(modal.list.id);
-        await carregarDados();
+        await carregarDados(selectedSellerId);
       } else if (modal.type === "addCard" && modal.listId) {
         if (!inputTitle.trim()) return;
-        await criarCartaoAction(modal.listId, inputTitle, inputDesc);
-        await carregarDados();
+        await criarCartaoAction(modal.listId, inputTitle, inputDesc, selectedSellerId);
+        await carregarDados(selectedSellerId);
       } else if (modal.type === "editCard" && modal.card) {
         if (!inputTitle.trim()) return;
         await editarCartaoAction(modal.card.id, inputTitle, inputDesc);
-        await carregarDados();
+        await carregarDados(selectedSellerId);
       } else if (modal.type === "deleteCard" && modal.card) {
         await excluirCartaoAction(modal.card.id);
-        await carregarDados();
+        await carregarDados(selectedSellerId);
       }
       closeModal();
     } finally {
@@ -468,21 +495,66 @@ export default function RotinaPage() {
   return (
     <div className="h-[calc(100vh-80px)] flex flex-col">
       {/* Header */}
-      <header className="mb-6 flex items-end justify-between gap-4 flex-shrink-0">
-        <div>
-          <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
-            <Icon icon="mdi:view-kanban" className="h-8 w-8 text-violet-400" />
-            Rotina
-          </h2>
-          <p className="text-neutral-400 mt-1">Organize suas tarefas e atividades no estilo Kanban</p>
+      <header className="mb-6 flex-shrink-0">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
+              <Icon icon="mdi:view-kanban" className="h-8 w-8 text-violet-400" />
+              Rotina
+            </h2>
+            <p className="text-neutral-400 mt-1">Organize suas tarefas e atividades no estilo Kanban</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {isAdmin && sellers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Icon icon="mdi:account-switch" className="h-4 w-4 text-neutral-500 flex-shrink-0" />
+                <select
+                  value={selectedSellerId ?? ""}
+                  onChange={e => handleSellerChange(e.target.value || undefined)}
+                  className="bg-neutral-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50 transition-all cursor-pointer"
+                >
+                  <option value="">Meu board</option>
+                  {sellers.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => openModal("addList")}
+              className="flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:bg-neutral-200 hover:scale-105"
+            >
+              <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Lista
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => openModal("addList")}
-          className="flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:bg-neutral-200 hover:scale-105"
-        >
-          <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Lista
-        </button>
+
+        {/* Banner: admin viewing another seller's board */}
+        <AnimatePresence>
+          {isAdmin && selectedSellerId && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-500/10 border border-violet-500/20 rounded-xl text-sm">
+                <Icon icon="mdi:eye" className="h-4 w-4 text-violet-400 flex-shrink-0" />
+                <span className="text-violet-300 font-semibold">
+                  Gerenciando rotina de: <span className="text-white">{sellers.find(s => s.id === selectedSellerId)?.name}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSellerChange(undefined)}
+                  className="ml-auto text-violet-400 hover:text-white transition-colors text-xs font-bold"
+                >
+                  Voltar ao meu board
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Board */}

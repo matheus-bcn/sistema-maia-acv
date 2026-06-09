@@ -27,13 +27,13 @@ CREATE INDEX IF NOT EXISTS idx_kanban_cards_list    ON public.kanban_cards(list_
 ALTER TABLE public.kanban_lists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kanban_cards ENABLE ROW LEVEL SECURITY;
 
--- Cada vendedor vê e edita apenas seu próprio kanban
+-- Vendedor vê/edita apenas o próprio kanban; admin acessa qualquer board
 CREATE POLICY "kanban_lists_select" ON public.kanban_lists FOR SELECT TO authenticated USING (seller_id = auth.uid() OR public.is_admin());
-CREATE POLICY "kanban_lists_insert" ON public.kanban_lists FOR INSERT TO authenticated WITH CHECK (seller_id = auth.uid());
+CREATE POLICY "kanban_lists_insert" ON public.kanban_lists FOR INSERT TO authenticated WITH CHECK (seller_id = auth.uid() OR public.is_admin());
 CREATE POLICY "kanban_lists_update" ON public.kanban_lists FOR UPDATE TO authenticated USING (seller_id = auth.uid() OR public.is_admin());
 CREATE POLICY "kanban_lists_delete" ON public.kanban_lists FOR DELETE TO authenticated USING (seller_id = auth.uid() OR public.is_admin());
 
 CREATE POLICY "kanban_cards_select" ON public.kanban_cards FOR SELECT TO authenticated USING (seller_id = auth.uid() OR public.is_admin());
-CREATE POLICY "kanban_cards_insert" ON public.kanban_cards FOR INSERT TO authenticated WITH CHECK (seller_id = auth.uid());
+CREATE POLICY "kanban_cards_insert" ON public.kanban_cards FOR INSERT TO authenticated WITH CHECK (seller_id = auth.uid() OR public.is_admin());
 CREATE POLICY "kanban_cards_update" ON public.kanban_cards FOR UPDATE TO authenticated USING (seller_id = auth.uid() OR public.is_admin());
 CREATE POLICY "kanban_cards_delete" ON public.kanban_cards FOR DELETE TO authenticated USING (seller_id = auth.uid() OR public.is_admin());
