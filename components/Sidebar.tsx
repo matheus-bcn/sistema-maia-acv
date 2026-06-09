@@ -94,6 +94,7 @@ export function Sidebar() {
     { nome: "Relatório",   caminho: "/relatorio",    icone: "mdi:chart-bar" },
     { nome: "Clientes",    caminho: "/clientes",     icone: "mdi:account-multiple" },
     { nome: "Equipe",      caminho: "/equipe",       icone: "mdi:account-group" },
+    { nome: "Rotina",      caminho: "/rotina",       icone: "mdi:view-kanban" },
     { nome: "Configuração",caminho: "/configuracao", icone: "line-md:cog-loop" },
   ] : [
     { nome: "Meu Painel",  caminho: "/meu-painel",   icone: "line-md:account" },
@@ -102,6 +103,7 @@ export function Sidebar() {
     { nome: "Calendário",  caminho: "/calendario",    icone: "line-md:calendar" },
     { nome: "Premiações",  caminho: "/premiacoes",    icone: "line-md:star-pulsating-loop" },
     { nome: "Clientes",    caminho: "/clientes",      icone: "mdi:account-multiple" },
+    { nome: "Rotina",      caminho: "/rotina",        icone: "mdi:view-kanban" },
   ];
 
   return (
