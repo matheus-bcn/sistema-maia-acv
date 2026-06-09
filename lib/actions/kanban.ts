@@ -282,3 +282,58 @@ export async function listarVendedoresParaKanbanAction() {
 
   return data ?? [];
 }
+
+// ── COMENTÁRIOS ─────────────────────────────────────────────
+
+export async function carregarComentariosAction(cardId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: comments } = await supabase
+    .from("kanban_card_comments")
+    .select("*")
+    .eq("card_id", cardId)
+    .order("created_at", { ascending: true });
+
+  if (!comments || comments.length === 0) return [];
+
+  const authorIds = [...new Set(comments.map((c: any) => c.author_id))];
+  const { data: authors } = await supabase
+    .from("sellers")
+    .select("id, name, avatar")
+    .in("id", authorIds);
+
+  const authorMap = Object.fromEntries((authors ?? []).map((a: any) => [a.id, a]));
+  return comments.map((c: any) => ({
+    ...c,
+    author: authorMap[c.author_id] ?? { name: "Admin", avatar: null },
+  }));
+}
+
+export async function criarComentarioAction(cardId: string, content: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const { error } = await supabase
+    .from("kanban_card_comments")
+    .insert({ card_id: cardId, author_id: user.id, content: content.trim() });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function excluirComentarioAction(commentId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const { error } = await supabase
+    .from("kanban_card_comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
