@@ -37,16 +37,21 @@ export async function criarVendedorComLoginAction(
 
     const userId = authData?.user?.id;
 
-    // B. Atualiza o perfil criado pela Trigger com as informações extras
+    // B. Upsert do perfil — funciona mesmo que a trigger não tenha rodado
     if (userId) {
-      const { error: dbError } = await supabaseAdmin.from('sellers').update({
+      const { error: dbError } = await supabaseAdmin.from('sellers').upsert({
+        id: userId,
+        name: nome,
+        email: email,
         phone: phone,
         role: category,
         is_admin: is_admin,
         status: 'Ativo'
-      }).eq('id', userId);
+      }, { onConflict: 'id' });
 
-      if (dbError) throw new Error("Erro ao atualizar perfil: " + dbError.message);
+      if (dbError) throw new Error("Erro ao salvar perfil: " + dbError.message);
+    } else {
+      throw new Error("Não foi possível obter o ID do usuário criado no Auth.");
     }
 
     revalidatePath("/equipe");
