@@ -95,6 +95,7 @@ export async function getCustomerStats(
     {
       total_gasto: number;
       total_compras: number;
+      primeira_compra: string;
       ultima_compra: string;
       atendentes: Set<string>;
     }
@@ -106,49 +107,56 @@ export async function getCustomerStats(
     const entry = map.get(name) ?? {
       total_gasto: 0,
       total_compras: 0,
+      primeira_compra: "",
       ultima_compra: "",
       atendentes: new Set<string>(),
     };
     entry.total_gasto += Number(row.amount);
     entry.total_compras += 1;
     const saleDate = (row.sale_date as string | null) ?? "";
-    if (saleDate && (!entry.ultima_compra || saleDate > entry.ultima_compra)) {
-      entry.ultima_compra = saleDate;
+    if (saleDate) {
+      if (!entry.ultima_compra || saleDate > entry.ultima_compra) entry.ultima_compra = saleDate;
+      if (!entry.primeira_compra || saleDate < entry.primeira_compra) entry.primeira_compra = saleDate;
     }
     const sellerName = (row.seller as any)?.name as string | undefined;
     if (sellerName) entry.atendentes.add(sellerName);
     map.set(name, entry);
   }
 
-  const allTotals = [...map.values()].map((e) => e.total_gasto).sort((a, b) => b - a);
-  const vipThreshold = allTotals.length > 0 ? allTotals[Math.floor(allTotals.length * 0.2)] ?? 0 : 0;
-
   const hoje = new Date().toISOString().split("T")[0];
 
   return [...map.entries()]
     .map(([name, e]) => {
       const ultimaDate = e.ultima_compra ? e.ultima_compra.slice(0, 10) : "";
-      const dias =
-        ultimaDate
-          ? Math.floor(
-              (new Date(hoje).getTime() - new Date(ultimaDate).getTime()) / 86_400_000
-            )
-          : 999;
+      const primeiraDate = e.primeira_compra ? e.primeira_compra.slice(0, 10) : "";
       const ticket_medio = e.total_compras > 0 ? e.total_gasto / e.total_compras : 0;
 
+      const diasSemComprar = ultimaDate
+        ? Math.floor((new Date(hoje).getTime() - new Date(ultimaDate).getTime()) / 86_400_000)
+        : 999;
+      const diasComoCliente = primeiraDate
+        ? Math.floor((new Date(hoje).getTime() - new Date(primeiraDate).getTime()) / 86_400_000)
+        : 999;
+
+      // Critérios de classificação:
+      // Dormente  — última compra há mais de 30 dias
+      // Novo      — primeira compra há 30 dias ou menos (independente de quantas compras fez)
+      // VIP       — ticket médio > R$500 e pelo menos 2 compras (cliente recorrente de alto valor)
+      // Regular   — todos os demais
       let status: CustomerStats["status"] = "regular";
-      if (dias > 30) status = "dormente";
-      else if (e.total_compras === 1) status = "novo";
-      else if (e.total_gasto >= vipThreshold && e.total_compras >= 2) status = "vip";
+      if (diasSemComprar > 30) status = "dormente";
+      else if (diasComoCliente <= 30) status = "novo";
+      else if (ticket_medio > 500 && e.total_compras >= 2) status = "vip";
 
       return {
         customer_name: name,
         total_gasto: e.total_gasto,
         total_compras: e.total_compras,
+        primeira_compra: primeiraDate,
         ultima_compra: ultimaDate,
         ticket_medio,
         atendentes: [...e.atendentes],
-        dias_sem_comprar: dias,
+        dias_sem_comprar: diasSemComprar,
         status,
       };
     })
