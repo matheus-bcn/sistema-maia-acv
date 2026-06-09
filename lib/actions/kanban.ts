@@ -12,7 +12,7 @@ async function resolveActingId(supabase: Awaited<ReturnType<typeof createClient>
 
 // ── LISTAS ──────────────────────────────────────────────────
 
-export async function criarListaAction(title: string, targetSellerId?: string) {
+export async function criarListaAction(title: string, color = "violet", targetSellerId?: string) {
   const supabase = await createClient();
   const { userId, sellerId } = await resolveActingId(supabase, targetSellerId);
   if (!userId) return { error: "Não autenticado." };
@@ -28,7 +28,7 @@ export async function criarListaAction(title: string, targetSellerId?: string) {
   const position = (existing?.position ?? -1) + 1;
   const { data, error } = await supabase
     .from("kanban_lists")
-    .insert({ seller_id: sellerId, title: title.trim(), position })
+    .insert({ seller_id: sellerId, title: title.trim(), color, position })
     .select()
     .single();
 
@@ -37,14 +37,14 @@ export async function criarListaAction(title: string, targetSellerId?: string) {
   return { success: true, list: data };
 }
 
-export async function editarListaAction(listId: string, title: string) {
+export async function editarListaAction(listId: string, title: string, color = "violet") {
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
 
   const { error } = await supabase
     .from("kanban_lists")
-    .update({ title: title.trim() })
+    .update({ title: title.trim(), color })
     .eq("id", listId);
 
   if (error) return { error: error.message };
@@ -78,7 +78,14 @@ export async function reordenarListasAction(listIds: string[]) {
 
 // ── CARTÕES ─────────────────────────────────────────────────
 
-export async function criarCartaoAction(listId: string, title: string, description?: string, targetSellerId?: string) {
+export async function criarCartaoAction(
+  listId: string,
+  title: string,
+  description?: string,
+  priority = "Normal",
+  due_date?: string,
+  targetSellerId?: string,
+) {
   const supabase = await createClient();
   const { userId, sellerId } = await resolveActingId(supabase, targetSellerId);
   if (!userId) return { error: "Não autenticado." };
@@ -94,7 +101,15 @@ export async function criarCartaoAction(listId: string, title: string, descripti
   const position = (existing?.position ?? -1) + 1;
   const { data, error } = await supabase
     .from("kanban_cards")
-    .insert({ list_id: listId, seller_id: sellerId, title: title.trim(), description: description?.trim() || null, position })
+    .insert({
+      list_id: listId,
+      seller_id: sellerId,
+      title: title.trim(),
+      description: description?.trim() || null,
+      priority,
+      due_date: due_date || null,
+      position,
+    })
     .select()
     .single();
 
@@ -103,14 +118,25 @@ export async function criarCartaoAction(listId: string, title: string, descripti
   return { success: true, card: data };
 }
 
-export async function editarCartaoAction(cardId: string, title: string, description?: string) {
+export async function editarCartaoAction(
+  cardId: string,
+  title: string,
+  description?: string,
+  priority = "Normal",
+  due_date?: string,
+) {
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
 
   const { error } = await supabase
     .from("kanban_cards")
-    .update({ title: title.trim(), description: description?.trim() || null })
+    .update({
+      title: title.trim(),
+      description: description?.trim() || null,
+      priority,
+      due_date: due_date || null,
+    })
     .eq("id", cardId);
 
   if (error) return { error: error.message };
