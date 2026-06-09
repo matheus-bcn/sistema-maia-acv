@@ -19,6 +19,7 @@ const ROUTE_COLORS: Record<string, string> = {
   "/relatorio":  "text-violet-400",
   "/clientes":   "text-teal-400",
   "/equipe":     "text-cyan-400",
+  "/rotina":     "text-violet-400",
   "/configuracao": "text-rose-400",
 };
 
@@ -94,7 +95,7 @@ export function Sidebar() {
     { nome: "Relatório",   caminho: "/relatorio",    icone: "mdi:chart-bar" },
     { nome: "Clientes",    caminho: "/clientes",     icone: "mdi:account-multiple" },
     { nome: "Equipe",      caminho: "/equipe",       icone: "mdi:account-group" },
-    { nome: "Rotina",      caminho: "/rotina",       icone: "mdi:view-kanban" },
+    { nome: "Rotina",      caminho: "/rotina",       icone: "mdi:view-column" },
     { nome: "Configuração",caminho: "/configuracao", icone: "line-md:cog-loop" },
   ] : [
     { nome: "Meu Painel",  caminho: "/meu-painel",   icone: "line-md:account" },
@@ -103,7 +104,7 @@ export function Sidebar() {
     { nome: "Calendário",  caminho: "/calendario",    icone: "line-md:calendar" },
     { nome: "Premiações",  caminho: "/premiacoes",    icone: "line-md:star-pulsating-loop" },
     { nome: "Clientes",    caminho: "/clientes",      icone: "mdi:account-multiple" },
-    { nome: "Rotina",      caminho: "/rotina",        icone: "mdi:view-kanban" },
+    { nome: "Rotina",      caminho: "/rotina",        icone: "mdi:view-column" },
   ];
 
   return (
