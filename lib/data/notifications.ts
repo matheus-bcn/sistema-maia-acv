@@ -11,11 +11,12 @@ export interface Notification {
 }
 
 export const NOTIF_CONFIG: Record<string, { icon: string; cor: string }> = {
-  meta_batida:      { icon: "mdi:trophy",           cor: "#facc15" },
-  meta_em_risco:    { icon: "line-md:alert-circle-loop", cor: "#f97316" },
-  arena_x1:         { icon: "mdi:sword-cross",       cor: "#ef4444" },
-  cliente_dormente: { icon: "mdi:sleep",             cor: "#a78bfa" },
-  ranking:          { icon: "mdi:trending-up",        cor: "#4ade80" },
+  meta_batida:       { icon: "mdi:trophy",                cor: "#facc15" },
+  meta_em_risco:     { icon: "line-md:alert-circle-loop", cor: "#f97316" },
+  arena_x1:          { icon: "mdi:sword-cross",           cor: "#ef4444" },
+  cliente_dormente:  { icon: "mdi:sleep",                 cor: "#a78bfa" },
+  ranking:           { icon: "mdi:trending-up",           cor: "#4ade80" },
+  tarefa_atribuida:  { icon: "mdi:clipboard-account",     cor: "#8b5cf6" },
 };
 
 export async function getNotifications(

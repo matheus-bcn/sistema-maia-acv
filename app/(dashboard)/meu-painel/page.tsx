@@ -79,6 +79,10 @@ export default function MeuPainelPage() {
   const [calcInput, setCalcInput] = useState("");
   const [calcModalOpen, setCalcModalOpen] = useState(false);
 
+  // Popup de tarefas atribuídas
+  const [tarefasOpen, setTarefasOpen] = useState(false);
+  const [tarefasNotifs, setTarefasNotifs] = useState<any[]>([]);
+
   // Estados da Batalha X1
   const [colegas, setColegas] = useState<any[]>([]);
   const [colegaSelecionado, setColegaSelecionado] = useState("");
@@ -160,6 +164,21 @@ export default function MeuPainelPage() {
             }
           }
         } catch (e) {}
+
+        // Notificações de tarefas atribuídas
+        try {
+          const { data: tarefas } = await supabase
+            .from("notifications")
+            .select("*")
+            .eq("seller_id", sellerData.id)
+            .eq("type", "tarefa_atribuida")
+            .eq("is_read", false)
+            .order("created_at", { ascending: false });
+          if (tarefas && tarefas.length > 0) {
+            setTarefasNotifs(tarefas);
+            setTarefasOpen(true);
+          }
+        } catch { /* silencioso */ }
 
         // Gráfico comparativo diário (seller específico)
         const comparativo = await getDailyComparisonData(supabase, periodo.inicio, periodo.fim, sellerData.id);
@@ -291,8 +310,64 @@ export default function MeuPainelPage() {
 
   const periodoLabel = `${periodo.inicio.split("-").reverse().join("/")} - ${periodo.fim.split("-").reverse().join("/")}`;
 
+  const fecharTarefas = async () => {
+    for (const n of tarefasNotifs) {
+      await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
+    }
+    setTarefasOpen(false);
+  };
+
   return (
     <div className="max-w-6xl mx-auto pb-20">
+
+      {/* Popup: tarefas atribuídas */}
+      <AnimatePresence>
+        {tarefasOpen && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="w-full max-w-sm bg-neutral-900 border border-violet-500/30 rounded-2xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                  <Icon icon="mdi:clipboard-account" className="h-5 w-5 text-violet-400" />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-base">Novas tarefas atribuídas</h3>
+                  <p className="text-xs text-neutral-400">{tarefasNotifs.length} tarefa(s) aguardam você</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto mb-4 pr-1">
+                {tarefasNotifs.map(n => (
+                  <div key={n.id} className="flex items-start gap-2.5 p-2.5 bg-white/5 border border-white/5 rounded-xl">
+                    <Icon icon="mdi:checkbox-blank-circle-outline" className="h-3.5 w-3.5 text-violet-400 mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-semibold leading-snug">{n.title}</p>
+                      {n.message && <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">{n.message}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button type="button" onClick={fecharTarefas}
+                  className="flex-1 py-2.5 text-sm font-semibold text-neutral-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                  Fechar
+                </button>
+                <button type="button" onClick={() => { window.location.href = "/rotina"; }}
+                  className="flex-[2] bg-violet-500 text-white py-2.5 rounded-xl text-sm font-black hover:bg-violet-600 transition-colors flex items-center justify-center gap-2">
+                  <Icon icon="mdi:view-column" className="h-4 w-4" /> Ver Rotina
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* HEADER */}
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
