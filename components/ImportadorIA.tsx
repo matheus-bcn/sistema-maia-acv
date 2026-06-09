@@ -85,8 +85,9 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
         setError(result.error);
       } else if (result.success) {
         const canalLabel = CANAL_INFO[canal].label;
+        const skippedMsg = result.skipped ? ` • ${result.skipped} duplicata${result.skipped > 1 ? "s" : ""} ignorada${result.skipped > 1 ? "s" : ""}.` : "";
         setSuccessMessage(
-          `Sucesso! O sistema identificou e lançou automaticamente ${result.inserted} vendas para ${result.sellerName} no canal ${canalLabel}.`
+          `Sucesso! ${result.inserted} vendas lançadas para ${result.sellerName} — ${canalLabel}.${skippedMsg}`
         );
         setFile(null);
         setTimeout(() => {
