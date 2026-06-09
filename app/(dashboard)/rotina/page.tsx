@@ -33,7 +33,10 @@ interface Comment {
   author: { name: string; avatar: string | null };
 }
 
-type Mode = "geral" | "vendedor";
+// "meu"      → board próprio do usuário (vendedor ou admin)
+// "geral"    → board compartilhado do admin (todos podem ver, vendedores podem criar cartões)
+// "vendedor" → admin visualiza/gerencia board de um vendedor específico
+type Mode = "meu" | "geral" | "vendedor";
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -167,7 +170,6 @@ function CardDrawer({
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
         className="fixed inset-y-0 right-0 z-50 w-full max-w-[520px] bg-neutral-950 border-l border-white/10 flex flex-col shadow-2xl"
       >
-        {/* Cabeçalho */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 flex-shrink-0">
           {list && (
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -181,11 +183,8 @@ function CardDrawer({
           </button>
         </div>
 
-        {/* Conteúdo rolável */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-5 space-y-5">
-
-            {/* Título */}
             {canEdit ? (
               <textarea value={title} onChange={e => setTitle(e.target.value)} rows={2}
                 className="w-full bg-transparent text-xl font-black text-white resize-none outline-none focus:bg-white/5 rounded-xl px-2 py-1 -mx-2 transition-all border border-transparent focus:border-white/10"
@@ -194,10 +193,7 @@ function CardDrawer({
               <h2 className="text-xl font-black text-white leading-snug px-2">{card.title}</h2>
             )}
 
-            {/* Campos */}
             <div className="grid grid-cols-2 gap-3">
-
-              {/* Responsável */}
               {canEdit && sellers.length > 0 ? (
                 <div>
                   <label className="text-xs font-bold uppercase text-neutral-500 mb-1.5 flex items-center gap-1.5">
@@ -223,7 +219,6 @@ function CardDrawer({
                 </div>
               ) : null}
 
-              {/* Prazo */}
               <div>
                 <label className="text-xs font-bold uppercase text-neutral-500 mb-1.5 flex items-center gap-1.5">
                   <Icon icon="mdi:calendar" className="h-3 w-3" /> Prazo
@@ -244,7 +239,6 @@ function CardDrawer({
               </div>
             </div>
 
-            {/* Prioridade */}
             <div>
               <label className="text-xs font-bold uppercase text-neutral-500 mb-2 block">Prioridade</label>
               <div className="flex gap-2">
@@ -266,7 +260,6 @@ function CardDrawer({
               </div>
             </div>
 
-            {/* Descrição */}
             <div>
               <label className="text-xs font-bold uppercase text-neutral-500 mb-1.5 block">Descrição</label>
               {canEdit ? (
@@ -284,7 +277,6 @@ function CardDrawer({
               )}
             </div>
 
-            {/* Botão Salvar */}
             {canEdit && (
               <div className="space-y-2">
                 {saveError && (
@@ -297,42 +289,28 @@ function CardDrawer({
               </div>
             )}
 
-            {/* Divisor */}
             <div className="border-t border-white/5" />
 
-            {/* Comentários */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase text-neutral-500 flex items-center gap-1.5">
                 <Icon icon="mdi:comment-multiple-outline" className="h-3.5 w-3.5" />
                 Comentários
-                {comments.length > 0 && (
-                  <span className="text-neutral-600">({comments.length})</span>
-                )}
+                {comments.length > 0 && <span className="text-neutral-600">({comments.length})</span>}
               </h4>
 
-              {/* Input novo comentário */}
               <div className="flex gap-2">
                 <textarea value={newComment} onChange={e => setNewComment(e.target.value)}
-                  placeholder="Escreva um comentário... (Enter para enviar)"
-                  rows={2}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendComment();
-                    }
-                  }}
+                  placeholder="Escreva um comentário... (Enter para enviar)" rows={2}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendComment(); } }}
                   className="flex-1 bg-neutral-900 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500/50 placeholder:text-neutral-600 resize-none transition-all"
                 />
                 <button type="button" onClick={handleSendComment}
                   disabled={sendingComment || !newComment.trim()}
                   className="px-3 bg-violet-500 rounded-xl text-white hover:bg-violet-600 disabled:opacity-40 transition-colors flex items-center justify-center">
-                  {sendingComment
-                    ? <Icon icon="line-md:loading-loop" className="h-4 w-4" />
-                    : <Icon icon="mdi:send" className="h-4 w-4" />}
+                  {sendingComment ? <Icon icon="line-md:loading-loop" className="h-4 w-4" /> : <Icon icon="mdi:send" className="h-4 w-4" />}
                 </button>
               </div>
 
-              {/* Lista de comentários */}
               {commentsLoading ? (
                 <div className="flex items-center justify-center py-6">
                   <Icon icon="line-md:loading-loop" className="h-5 w-5 text-neutral-600" />
@@ -375,10 +353,9 @@ function CardDrawer({
 // ── Cartão Sortável ────────────────────────────────────────
 
 function CardItem({
-  card, lists, sellers, canEdit, onEdit, onDelete, onMove, onOpen,
+  card, lists, sellers, canEdit, onDelete, onMove, onOpen,
 }: {
   card: KanbanCard; lists: KanbanList[]; sellers: Seller[]; canEdit: boolean;
-  onEdit: (card: KanbanCard) => void;
   onDelete: (cardId: string) => void;
   onMove: (cardId: string, listId: string) => void;
   onOpen: (card: KanbanCard) => void;
@@ -404,7 +381,6 @@ function CardItem({
       className="bg-neutral-800 border border-white/10 rounded-xl p-3 shadow-sm hover:border-white/20 transition-colors group"
     >
       <div className="flex items-start gap-1.5">
-        {/* Handle de arrasto */}
         {canEdit && (
           <div {...attributes} {...listeners}
             className="cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400 transition-colors mt-0.5 flex-shrink-0 touch-none">
@@ -412,7 +388,6 @@ function CardItem({
           </div>
         )}
 
-        {/* Corpo clicável */}
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onOpen(card)}>
           <p className="text-sm font-semibold text-white leading-snug">{card.title}</p>
           {card.description && (
@@ -443,7 +418,6 @@ function CardItem({
           </div>
         </div>
 
-        {/* Menu de opções */}
         {canEdit && (
           <div className="relative flex-shrink-0" ref={menuRef}>
             <button type="button" onClick={e => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
@@ -483,10 +457,12 @@ function CardItem({
 // ── Coluna ─────────────────────────────────────────────────
 
 function KanbanColumn({
-  list, cards, lists, sellers, canEdit,
+  list, cards, lists, sellers, canEdit, canAddCard,
   onAddCard, onEditList, onDeleteList, onDeleteCard, onMoveCard, onOpenCard,
 }: {
-  list: KanbanList; cards: KanbanCard[]; lists: KanbanList[]; sellers: Seller[]; canEdit: boolean;
+  list: KanbanList; cards: KanbanCard[]; lists: KanbanList[]; sellers: Seller[];
+  canEdit: boolean;
+  canAddCard: boolean;
   onAddCard: (listId: string) => void;
   onEditList: (list: KanbanList) => void;
   onDeleteList: (listId: string) => void;
@@ -550,12 +526,12 @@ function KanbanColumn({
         <SortableContext items={cards.map(c => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map(card => (
             <CardItem key={card.id} card={card} lists={lists} sellers={sellers} canEdit={canEdit}
-              onEdit={onOpenCard} onDelete={onDeleteCard} onMove={onMoveCard} onOpen={onOpenCard} />
+              onDelete={onDeleteCard} onMove={onMoveCard} onOpen={onOpenCard} />
           ))}
         </SortableContext>
       </div>
 
-      {canEdit && (
+      {(canEdit || canAddCard) && (
         <button type="button" onClick={() => onAddCard(list.id)}
           className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-neutral-500 hover:text-white hover:bg-white/5 transition-colors border-t border-white/5">
           <Icon icon="mdi:plus" className="h-4 w-4" /> Adicionar cartão
@@ -611,8 +587,10 @@ export default function RotinaPage() {
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [mode, setMode] = useState<Mode>("geral");
+  // "meu" = board próprio (default para vendedor), "geral" = board do admin (default para admin), "vendedor" = admin gerencia vendedor
+  const [mode, setMode] = useState<Mode>("meu");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminBoardId, setAdminBoardId] = useState<string | undefined>(undefined);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [selectedSellerId, setSelectedSellerId] = useState<string | undefined>(undefined);
 
@@ -638,8 +616,19 @@ export default function RotinaPage() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const canEdit = isAdmin;
-  const createTargetId = mode === "vendedor" ? selectedSellerId : undefined;
+  // Pode gerenciar listas, arrastar, deletar cartões
+  const canEdit = isAdmin || mode === "meu";
+  // Pode adicionar cartões (vendedor no painel geral também pode)
+  const canAddCard = canEdit || (!isAdmin && mode === "geral");
+
+  // targetSellerId para criação:
+  // - admin no modo vendedor → board do vendedor selecionado
+  // - vendedor no modo geral → board do admin (para criar cartão lá)
+  // - demais → undefined (usa o próprio userId)
+  const createTargetId =
+    mode === "vendedor" ? selectedSellerId :
+    (!isAdmin && mode === "geral") ? adminBoardId :
+    undefined;
 
   const carregarDados = useCallback(async (sellerId?: string) => {
     const data = await carregarRotinaAction(sellerId);
@@ -650,34 +639,49 @@ export default function RotinaPage() {
   useEffect(() => {
     const init = async () => {
       setLoading(true);
+      // Sempre chama para descobrir isAdmin e adminId
       const info = await carregarPainelGeralAction();
       setIsAdmin(info.isAdmin);
-      setLists(info.lists as KanbanList[]);
-      setCards(info.cards as KanbanCard[]);
-      setLoading(false);
+      setAdminBoardId(info.adminId ?? undefined);
 
       if (info.isAdmin) {
+        // Admin começa no PAINEL GERAL com seu próprio board
+        setMode("geral");
+        setLists(info.lists as KanbanList[]);
+        setCards(info.cards as KanbanCard[]);
         const sellerList = await listarVendedoresParaKanbanAction();
         setSellers(sellerList as Seller[]);
+      } else {
+        // Vendedor começa no MEU PAINEL com seu próprio board
+        setMode("meu");
+        const myBoard = await carregarRotinaAction();
+        setLists(myBoard.lists as KanbanList[]);
+        setCards(myBoard.cards as KanbanCard[]);
       }
+      setLoading(false);
     };
     init();
   }, []);
 
   const handleModeChange = async (newMode: Mode) => {
+    if (newMode === mode && newMode !== "vendedor") return;
     setMode(newMode);
     setSelectedSellerId(undefined);
     setDrawerCard(null);
+    setLoading(true);
+
     if (newMode === "geral") {
-      setLoading(true);
       const info = await carregarPainelGeralAction();
       setLists(info.lists as KanbanList[]);
       setCards(info.cards as KanbanCard[]);
-      setLoading(false);
+    } else if (newMode === "meu") {
+      await carregarDados(); // carrega board do próprio usuário
     } else {
+      // vendedor: espera seleção
       setLists([]);
       setCards([]);
     }
+    setLoading(false);
   };
 
   const handleSellerChange = async (sellerId: string) => {
@@ -686,6 +690,18 @@ export default function RotinaPage() {
     setLoading(true);
     await carregarDados(sellerId);
     setLoading(false);
+  };
+
+  // NOVA LISTA para vendedor: sempre cria no MEU PAINEL
+  const handleNovaLista = () => {
+    if (!isAdmin && mode !== "meu") {
+      // Muda para meu painel e abre modal
+      setDrawerCard(null);
+      setLoading(true);
+      carregarDados().then(() => setLoading(false));
+      setMode("meu");
+    }
+    openModal("addList");
   };
 
   const openModal = (type: typeof modal.type, opts?: { listId?: string; card?: KanbanCard; list?: KanbanList }) => {
@@ -706,7 +722,9 @@ export default function RotinaPage() {
       const info = await carregarPainelGeralAction();
       setLists(info.lists as KanbanList[]);
       setCards(info.cards as KanbanCard[]);
-    } else if (selectedSellerId) {
+    } else if (mode === "meu") {
+      await carregarDados();
+    } else if (mode === "vendedor" && selectedSellerId) {
       await carregarDados(selectedSellerId);
     }
   }, [mode, selectedSellerId, carregarDados]);
@@ -717,7 +735,9 @@ export default function RotinaPage() {
     try {
       if (modal.type === "addList") {
         if (!inputTitle.trim()) { setModalError("Digite um título para a lista."); return; }
-        const res = await criarListaAction(inputTitle, inputColor, createTargetId);
+        // Lista sempre criada no board correto (undefined = próprio usuário)
+        const listTarget = isAdmin ? createTargetId : undefined;
+        const res = await criarListaAction(inputTitle, inputColor, listTarget);
         if (res.error) { setModalError(res.error); return; }
         await recarregar();
 
@@ -846,27 +866,52 @@ export default function RotinaPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Botões de modo */}
             <div className="flex bg-neutral-900 border border-white/10 rounded-xl p-1 gap-1">
-              <button type="button" onClick={() => handleModeChange("geral")}
-                className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-                  mode === "geral" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
-                )}>
-                <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
-                PAINEL GERAL
-              </button>
-              {isAdmin && (
-                <button type="button" onClick={() => handleModeChange("vendedor")}
-                  className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-                    mode === "vendedor" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
-                  )}>
-                  <Icon icon="mdi:account-group" className="h-3.5 w-3.5" />
-                  PAINEL VENDEDOR
-                </button>
+              {!isAdmin ? (
+                // Vendedor: MEU PAINEL + PAINEL GERAL
+                <>
+                  <button type="button" onClick={() => handleModeChange("meu")}
+                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                      mode === "meu" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
+                    )}>
+                    <Icon icon="mdi:account-circle" className="h-3.5 w-3.5" />
+                    MEU PAINEL
+                  </button>
+                  <button type="button" onClick={() => handleModeChange("geral")}
+                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                      mode === "geral" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
+                    )}>
+                    <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
+                    PAINEL GERAL
+                  </button>
+                </>
+              ) : (
+                // Admin: PAINEL GERAL + PAINEL VENDEDOR
+                <>
+                  <button type="button" onClick={() => handleModeChange("geral")}
+                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                      mode === "geral" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
+                    )}>
+                    <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
+                    PAINEL GERAL
+                  </button>
+                  <button type="button" onClick={() => handleModeChange("vendedor")}
+                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                      mode === "vendedor" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
+                    )}>
+                    <Icon icon="mdi:account-group" className="h-3.5 w-3.5" />
+                    PAINEL VENDEDOR
+                  </button>
+                </>
               )}
             </div>
 
-            {canEdit && (mode === "geral" || (mode === "vendedor" && selectedSellerId)) && (
-              <button type="button" onClick={() => openModal("addList")}
+            {/* NOVA LISTA:
+                - Vendedor: sempre visível, cria no MEU PAINEL
+                - Admin: visível no geral ou vendedor com seller selecionado */}
+            {(!isAdmin || (mode === "geral" || (mode === "vendedor" && selectedSellerId))) && (
+              <button type="button" onClick={handleNovaLista}
                 className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:bg-neutral-200 hover:scale-105">
                 <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Lista
               </button>
@@ -874,6 +919,7 @@ export default function RotinaPage() {
           </div>
         </div>
 
+        {/* Sub-header: modo vendedor (admin) */}
         <AnimatePresence>
           {mode === "vendedor" && isAdmin && (
             <motion.div initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: "auto", marginTop: 12 }} exit={{ opacity: 0, height: 0, marginTop: 0 }} className="overflow-hidden">
@@ -892,6 +938,18 @@ export default function RotinaPage() {
                     <Icon icon="line-md:close" className="h-4 w-4" />
                   </button>
                 )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Sub-header: modo geral para vendedor — aviso de somente leitura parcial */}
+        <AnimatePresence>
+          {!isAdmin && mode === "geral" && (
+            <motion.div initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: "auto", marginTop: 12 }} exit={{ opacity: 0, height: 0, marginTop: 0 }} className="overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <Icon icon="mdi:information-outline" className="h-3.5 w-3.5 text-blue-400 flex-shrink-0" />
+                <p className="text-xs text-blue-300">Você está vendo o painel da equipe. Pode adicionar cartões às listas existentes.</p>
               </div>
             </motion.div>
           )}
@@ -916,7 +974,9 @@ export default function RotinaPage() {
           <Icon icon="mdi:view-column-outline" className="h-20 w-20 text-neutral-700 mb-4" />
           <h3 className="text-xl font-black text-white mb-2">Nenhuma lista ainda</h3>
           <p className="text-neutral-400 text-sm mb-6 max-w-xs">
-            {canEdit ? "Crie a primeira lista para começar a organizar" : "Nenhuma tarefa foi criada ainda"}
+            {canEdit
+              ? "Crie a primeira lista para começar a organizar"
+              : "Nenhuma lista foi criada neste painel ainda"}
           </p>
           {canEdit && (
             <button type="button" onClick={() => openModal("addList")}
@@ -933,7 +993,7 @@ export default function RotinaPage() {
               {lists.map(list => (
                 <KanbanColumn key={list.id} list={list}
                   cards={cards.filter(c => c.list_id === list.id).sort((a, b) => a.position - b.position)}
-                  lists={lists} sellers={sellers} canEdit={canEdit}
+                  lists={lists} sellers={sellers} canEdit={canEdit} canAddCard={canAddCard}
                   onAddCard={(listId) => openModal("addCard", { listId })}
                   onEditList={(l) => openModal("editList", { list: l })}
                   onDeleteList={(listId) => openModal("deleteList", { list: lists.find(l => l.id === listId) })}

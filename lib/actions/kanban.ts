@@ -138,7 +138,12 @@ export async function criarCartaoAction(
   const { userId, sellerId } = await resolveActingId(supabase, targetSellerId);
   if (!userId) return { error: "Não autenticado." };
 
-  const { data: existing } = await supabase
+  // Usa service role quando vendedor cria cartão no board de outro usuário (ex: painel geral do admin)
+  const boardClient = (targetSellerId && targetSellerId !== userId)
+    ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    : supabase;
+
+  const { data: existing } = await boardClient
     .from("kanban_cards")
     .select("position")
     .eq("list_id", listId)
@@ -147,7 +152,7 @@ export async function criarCartaoAction(
     .maybeSingle();
 
   const position = (existing?.position ?? -1) + 1;
-  const { data, error } = await supabase
+  const { data, error } = await boardClient
     .from("kanban_cards")
     .insert({
       list_id: listId, seller_id: sellerId, title: title.trim(),
