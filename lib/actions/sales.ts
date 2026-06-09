@@ -158,19 +158,26 @@ function extractCustomerComercial(rawLine: string, isType2: boolean): string {
 
 // Parser para o relatório Comercial (O.S.)
 // O ano no campo de data é corrompido no export — extrai do cabeçalho do relatório
-function parseComercialReport(text: string, sellerId: string): ImportRow[] {
+function parseComercialReport(text: string, sellerId: string, yearOverride?: string): ImportRow[] {
   const lines = text.split(/\r?\n/);
   const rows: ImportRow[] = [];
 
-  // Extrai o ano real do cabeçalho (ex: "emissão de 01/05/2026 a 31/05/2026")
-  let reportYear = new Date().getFullYear().toString();
-  for (const line of lines) {
-    const yearMatch = line.match(/emiss[a\?ã]o\s+de\s+\d{2}\/\d{2}\/(\d{4})/i);
-    if (yearMatch) {
-      reportYear = yearMatch[1];
-      break;
+  // Extrai o ano real do cabeçalho — tenta múltiplos padrões nas primeiras 30 linhas
+  let reportYear = yearOverride || "";
+  if (!reportYear) {
+    for (const line of lines.slice(0, 30)) {
+      // Padrão 1: "emissão de 01/05/2025 a 31/05/2025"
+      const m1 = line.match(/emiss[a\?ã]o\s+de\s+\d{2}\/\d{2}\/(\d{4})/i);
+      if (m1) { reportYear = m1[1]; break; }
+      // Padrão 2: qualquer data DD/MM/20XX no cabeçalho
+      const m2 = line.match(/\d{2}\/\d{2}\/(20\d{2})/);
+      if (m2) { reportYear = m2[1]; break; }
+      // Padrão 3: ano isolado 20XX
+      const m3 = line.match(/\b(20\d{2})\b/);
+      if (m3) { reportYear = m3[1]; break; }
     }
   }
+  if (!reportYear) reportYear = new Date().getFullYear().toString();
 
   for (const rawLine of lines) {
     // Linha de dados tipo 1: começa com 2+ espaços seguidos de 6 dígitos
@@ -209,7 +216,8 @@ function parseComercialReport(text: string, sellerId: string): ImportRow[] {
 export async function importPdvReportAction(
   formData: FormData,
   sellerId: string,
-  canal: "atendimento" | "comercial"
+  canal: "atendimento" | "comercial",
+  anoRelatorio?: string
 ) {
   const supabase = await createClient();
 
@@ -237,7 +245,7 @@ export async function importPdvReportAction(
 
     const rows =
       canal === "comercial"
-        ? parseComercialReport(textContent, sellerId)
+        ? parseComercialReport(textContent, sellerId, anoRelatorio)
         : parseAtendimentoReport(textContent, sellerId);
 
     if (rows.length === 0) {

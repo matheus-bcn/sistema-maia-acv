@@ -37,6 +37,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
   const [canal, setCanal] = useState<Canal>("atendimento");
   const [file, setFile] = useState<File | null>(null);
 
+  const [anoRelatorio, setAnoRelatorio] = useState(new Date().getFullYear().toString());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -79,7 +80,7 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
       const formData = new FormData();
       formData.append("file", file);
 
-      const result = await importPdvReportAction(formData, sellerId, canal);
+      const result = await importPdvReportAction(formData, sellerId, canal, canal === "comercial" ? anoRelatorio : undefined);
 
       if (result.error) {
         setError(result.error);
@@ -174,6 +175,27 @@ export function ImportadorIA({ isOpen, onClose, onImported }: ImportadorIAProps)
               })}
             </div>
           </div>
+
+          {/* ANO DO RELATÓRIO — apenas para Comercial (O.S.) */}
+          {canal === "comercial" && (
+            <div>
+              <label className="text-xs font-bold uppercase text-neutral-400 flex items-center gap-1 mb-1.5">
+                <Icon icon="mdi:calendar-range" className="h-3 w-3" /> Ano do Relatório
+              </label>
+              <select
+                value={anoRelatorio}
+                onChange={(e) => setAnoRelatorio(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-black/50 px-4 py-3 text-sm outline-none bg-neutral-900 text-white focus:border-white/30"
+              >
+                {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                  <option key={y} value={y} className="bg-neutral-950">{y}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-neutral-500 mt-1">
+                Selecione o ano do relatório — necessário para histórico correto
+              </p>
+            </div>
+          )}
 
           {/* ÁREA DE UPLOAD DO ARQUIVO */}
           <div className="border-2 border-dashed border-white/10 hover:border-white/30 rounded-xl p-6 text-center cursor-pointer transition-all relative bg-black/20 group">
