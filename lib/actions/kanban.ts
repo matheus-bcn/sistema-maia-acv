@@ -84,6 +84,7 @@ export async function criarCartaoAction(
   description?: string,
   priority = "Normal",
   due_date?: string,
+  assignedTo?: string,
   targetSellerId?: string,
 ) {
   const supabase = await createClient();
@@ -108,12 +109,28 @@ export async function criarCartaoAction(
       description: description?.trim() || null,
       priority,
       due_date: due_date || null,
+      assigned_to: assignedTo || null,
       position,
     })
     .select()
     .single();
 
   if (error) return { error: error.message };
+
+  // Notifica o vendedor responsável (se for diferente de quem criou)
+  if (assignedTo && assignedTo !== userId) {
+    try {
+      const { data: assigner } = await supabase.from("sellers").select("name").eq("id", userId).maybeSingle();
+      const dueInfo = due_date ? ` — prazo: ${new Date(due_date + "T00:00:00").toLocaleDateString("pt-BR")}` : "";
+      await supabase.from("notifications").insert({
+        seller_id: assignedTo,
+        type: "tarefa_atribuida",
+        title: "Nova tarefa atribuída a você",
+        message: `${assigner?.name ?? "Admin"}: "${title.trim()}"${dueInfo}`,
+      });
+    } catch { /* não bloqueia criação do cartão */ }
+  }
+
   revalidatePath("/rotina");
   return { success: true, card: data };
 }
@@ -124,6 +141,8 @@ export async function editarCartaoAction(
   description?: string,
   priority = "Normal",
   due_date?: string,
+  assignedTo?: string,
+  prevAssignedTo?: string,
 ) {
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
@@ -136,10 +155,26 @@ export async function editarCartaoAction(
       description: description?.trim() || null,
       priority,
       due_date: due_date || null,
+      assigned_to: assignedTo || null,
     })
     .eq("id", cardId);
 
   if (error) return { error: error.message };
+
+  // Notifica se o responsável mudou
+  if (assignedTo && assignedTo !== userId && assignedTo !== prevAssignedTo) {
+    try {
+      const { data: assigner } = await supabase.from("sellers").select("name").eq("id", userId).maybeSingle();
+      const dueInfo = due_date ? ` — prazo: ${new Date(due_date + "T00:00:00").toLocaleDateString("pt-BR")}` : "";
+      await supabase.from("notifications").insert({
+        seller_id: assignedTo,
+        type: "tarefa_atribuida",
+        title: "Nova tarefa atribuída a você",
+        message: `${assigner?.name ?? "Admin"}: "${title.trim()}"${dueInfo}`,
+      });
+    } catch { /* não bloqueia edição */ }
+  }
+
   revalidatePath("/rotina");
   return { success: true };
 }
