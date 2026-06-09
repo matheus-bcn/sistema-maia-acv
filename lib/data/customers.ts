@@ -80,20 +80,14 @@ const CLIENTES_IGNORADOS = /^cliente\s+balc[aã]o$/i;
 
 export async function getCustomerStats(
   supabase: SupabaseClient,
-  startDate?: string,
-  endDate?: string
 ): Promise<CustomerStats[]> {
-  let query = supabase
+  const { data, error } = await supabase
     .from("sales")
     .select("customer_name, amount, sale_date, pdv_number, seller:sellers(name)")
     .not("customer_name", "is", null)
     .neq("customer_name", "")
     .in("status", ["Aprovado", "Concluída"]);
 
-  if (startDate) query = query.gte("sale_date", `${startDate}T00:00:00`);
-  if (endDate) query = query.lte("sale_date", `${endDate}T23:59:59`);
-
-  const { data, error } = await query;
   if (error || !data) return [];
 
   const map = new Map<
@@ -159,4 +153,65 @@ export async function getCustomerStats(
       };
     })
     .sort((a, b) => b.total_gasto - a.total_gasto);
+}
+
+export interface HabitualBuyer {
+  customer_name: string;
+  anos_comprou: number;
+  ultima_compra_neste_mes: string;
+  total_gasto_historico: number;
+}
+
+// Retorna clientes que historicamente compram no mês informado (anos anteriores)
+export async function getHabitualBuyers(
+  supabase: SupabaseClient,
+  month: number // 1-12
+): Promise<HabitualBuyer[]> {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const m = String(month).padStart(2, "0");
+
+  // Consulta os 3 anos anteriores para o mesmo mês
+  const ranges = Array.from({ length: 3 }, (_, i) => {
+    const y = currentYear - i - 1;
+    const lastDay = new Date(y, month, 0).getDate();
+    return { start: `${y}-${m}-01`, end: `${y}-${m}-${String(lastDay).padStart(2, "0")}` };
+  });
+
+  const results = await Promise.all(
+    ranges.map((r) =>
+      supabase
+        .from("sales")
+        .select("customer_name, amount, sale_date")
+        .not("customer_name", "is", null)
+        .neq("customer_name", "")
+        .in("status", ["Aprovado", "Concluída"])
+        .gte("sale_date", r.start)
+        .lte("sale_date", r.end)
+    )
+  );
+
+  const map = new Map<string, { anos: Set<number>; ultima: string; total: number }>();
+  results.forEach((res, idx) => {
+    const year = currentYear - idx - 1;
+    for (const row of res.data ?? []) {
+      const name = (row.customer_name as string).trim();
+      if (!name || CLIENTES_IGNORADOS.test(name)) continue;
+      const entry = map.get(name) ?? { anos: new Set(), ultima: "", total: 0 };
+      entry.anos.add(year);
+      entry.total += Number(row.amount);
+      if (!entry.ultima || row.sale_date > entry.ultima) entry.ultima = row.sale_date;
+      map.set(name, entry);
+    }
+  });
+
+  return [...map.entries()]
+    .map(([customer_name, e]) => ({
+      customer_name,
+      anos_comprou: e.anos.size,
+      ultima_compra_neste_mes: e.ultima.slice(0, 10),
+      total_gasto_historico: e.total,
+    }))
+    .sort((a, b) => b.anos_comprou - a.anos_comprou || b.total_gasto_historico - a.total_gasto_historico)
+    .slice(0, 20);
 }
