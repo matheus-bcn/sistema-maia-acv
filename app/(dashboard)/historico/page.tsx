@@ -38,6 +38,10 @@ export default function HistoricoPage() {
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
+  const now = new Date();
+  const [deleteMonth, setDeleteMonth] = useState(now.getMonth() + 1); // 1-12
+  const [deleteYear, setDeleteYear] = useState(now.getFullYear());
+
   // Estados dos Dropdowns
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showStatusFilter, setShowStatusFilter] = useState(false);
@@ -93,13 +97,20 @@ export default function HistoricoPage() {
   const confirmDeleteAll = async () => {
     setIsDeletingAll(true);
     try {
-      const result = await deleteAllSalesAction(periodo.inicio, periodo.fim);
+      const m = String(deleteMonth).padStart(2, "0");
+      const lastDay = new Date(deleteYear, deleteMonth, 0).getDate();
+      const start = `${deleteYear}-${m}-01`;
+      const end = `${deleteYear}-${m}-${String(lastDay).padStart(2, "0")}`;
+      const result = await deleteAllSalesAction(start, end);
       if (result?.error) {
         alert(`Erro ao limpar mês: ${result.error}`);
       } else {
-        setVendas([]);
+        // Se o mês apagado coincide com o período exibido, limpa a lista
+        if (start <= periodo.fim && end >= periodo.inicio) {
+          await carregarVendas();
+        }
       }
-    } catch (err) {
+    } catch {
       alert("Falha de conexão ao limpar o histórico.");
     } finally {
       setIsDeletingAll(false);
@@ -439,18 +450,56 @@ export default function HistoricoPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-card w-full max-w-sm rounded-2xl p-6 border border-red-500/30 bg-neutral-900 text-white space-y-4 shadow-2xl"
+              className="glass-card w-full max-w-sm rounded-2xl p-6 border border-red-500/30 bg-neutral-900 text-white space-y-5 shadow-2xl"
             >
-              <div className="flex items-center gap-3 text-red-400">
+              <div className="flex items-center gap-3">
                 <Icon icon="line-md:alert-circle-loop" className="icon-always h-6 w-6 flex-shrink-0 text-red-400" />
-                <h3 className="text-lg font-black text-white">Limpar Mês Inteiro?</h3>
+                <h3 className="text-lg font-black text-white">Limpar Histórico por Mês</h3>
               </div>
-              
-              <p className="text-sm text-neutral-400 leading-relaxed">
-                Tem certeza? Você está prestes a apagar <strong>permanentemente</strong> todas as {vendas.length} vendas cadastradas entre <span className="text-white">{periodo.inicio.split('-').reverse().join('/')}</span> e <span className="text-white">{periodo.fim.split('-').reverse().join('/')}</span>.
+
+              <p className="text-sm text-neutral-400">
+                Selecione o mês que deseja apagar permanentemente:
               </p>
-              
-              <div className="flex justify-end gap-3 pt-2">
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase text-neutral-500">Mês</label>
+                  <select
+                    value={deleteMonth}
+                    onChange={(e) => setDeleteMonth(Number(e.target.value))}
+                    className="w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2.5 text-sm text-white outline-none focus:border-red-500/50"
+                  >
+                    {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m, i) => (
+                      <option key={i} value={i + 1} className="bg-neutral-900">{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold uppercase text-neutral-500">Ano</label>
+                  <select
+                    value={deleteYear}
+                    onChange={(e) => setDeleteYear(Number(e.target.value))}
+                    className="w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2.5 text-sm text-white outline-none focus:border-red-500/50"
+                  >
+                    {Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => (
+                      <option key={y} value={y} className="bg-neutral-900">{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+                <Icon icon="mdi:information-outline" className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-red-300 leading-relaxed">
+                  Todas as vendas de{" "}
+                  <strong className="text-white">
+                    {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"][deleteMonth - 1]}/{deleteYear}
+                  </strong>{" "}
+                  serão excluídas <strong>permanentemente</strong> e não poderão ser recuperadas.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsDeleteAllModalOpen(false)}
@@ -465,8 +514,10 @@ export default function HistoricoPage() {
                   disabled={isDeletingAll}
                   className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-bold text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  {isDeletingAll ? <Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" /> : <Icon icon="mdi:trash-can" className="h-4 w-4" />}
-                  {isDeletingAll ? "Excluindo..." : "Sim, apagar tudo"}
+                  {isDeletingAll
+                    ? <><Icon icon="line-md:loading-loop" className="icon-always h-4 w-4" /> Excluindo...</>
+                    : <><Icon icon="mdi:trash-can" className="h-4 w-4" /> Apagar mês</>
+                  }
                 </button>
               </div>
             </motion.div>
