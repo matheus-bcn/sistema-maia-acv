@@ -52,6 +52,7 @@ export default function ClientesPage() {
   const [clienteSelecionado, setClienteSelecionado] = useState<CustomerStats | null>(null);
   const [habituais, setHabituais] = useState<HabitualBuyer[]>([]);
   const [loadingHabituais, setLoadingHabituais] = useState(true);
+  const [modalHabituaisOpen, setModalHabituaisOpen] = useState(false);
 
   const mesAtual = new Date().getMonth() + 1;
 
@@ -181,9 +182,14 @@ export default function ClientesPage() {
       </div>
 
       {/* Card: Compradores Habituais do Mês */}
-      <div className="glass-card rounded-xl border border-violet-500/20 bg-violet-500/5 mb-6 overflow-hidden">
-        <div className="p-5">
-          <div className="flex items-center gap-3 mb-4">
+      <motion.button
+        type="button"
+        onClick={() => !loadingHabituais && habituais.length > 0 && setModalHabituaisOpen(true)}
+        whileHover={{ scale: habituais.length > 0 ? 1.01 : 1 }}
+        className={`w-full text-left glass-card rounded-xl border border-violet-500/20 bg-violet-500/5 mb-6 p-5 transition-colors ${habituais.length > 0 ? "hover:border-violet-400/40 cursor-pointer" : "cursor-default"}`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
               <Icon icon="mdi:calendar-star" className="h-5 w-5 text-violet-400" />
             </div>
@@ -196,56 +202,98 @@ export default function ClientesPage() {
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            {loadingHabituais ? (
+              <Icon icon="line-md:loading-loop" className="icon-always h-5 w-5 text-violet-400" />
+            ) : (
+              <>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-violet-400">{habituais.length}</p>
+                  <p className="text-[10px] text-neutral-500 uppercase font-bold">clientes</p>
+                </div>
+                {habituais.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-violet-400 border border-violet-500/30 bg-violet-500/10 rounded-lg px-3 py-2">
+                    <Icon icon="mdi:eye" className="h-4 w-4" />
+                    Ver lista
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </motion.button>
 
-          {loadingHabituais ? (
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-44 h-20 bg-white/5 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : habituais.length === 0 ? (
-            <p className="text-xs text-neutral-500 italic">
-              Nenhum cliente com histórico de compras neste mês nos anos anteriores.
-            </p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {habituais.map((h) => (
-                <motion.div
-                  key={h.customer_name}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex-shrink-0 w-48 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 cursor-pointer hover:border-violet-400/40 transition-colors"
-                  onClick={() => {
-                    const found = clientes.find(c => c.customer_name === h.customer_name);
-                    if (found) setClienteSelecionado(found);
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-[10px] font-black text-violet-300 flex-shrink-0">
+      {/* Modal de Compradores Habituais */}
+      <AnimatePresence>
+        {modalHabituaisOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setModalHabituaisOpen(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card w-full max-w-lg rounded-2xl border border-violet-500/30 bg-neutral-900 shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                    <Icon icon="mdi:calendar-star" className="h-5 w-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                      Habituais de {MESES_PT[mesAtual - 1]}
+                    </h3>
+                    <p className="text-[10px] text-neutral-500">{habituais.length} clientes identificados</p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setModalHabituaisOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-neutral-500 hover:text-white transition-colors">
+                  <Icon icon="line-md:close" className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto max-h-[60vh] p-3 space-y-2">
+                {habituais.map((h, i) => (
+                  <motion.button
+                    key={h.customer_name}
+                    type="button"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    onClick={() => {
+                      const found = clientes.find(c => c.customer_name === h.customer_name);
+                      if (found) { setClienteSelecionado(found); setModalHabituaisOpen(false); }
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-violet-500/20 transition-all text-left"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-sm font-black text-violet-300 flex-shrink-0">
                       {h.customer_name.charAt(0)}
                     </div>
-                    <span className="text-xs font-bold text-white truncate" title={h.customer_name}>
-                      {h.customer_name}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-                      h.anos_comprou >= 2
-                        ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
-                        : "bg-white/5 text-neutral-400 border border-white/10"
-                    }`}>
-                      {h.anos_comprou} {h.anos_comprou === 1 ? "ano" : "anos"}
-                    </span>
-                    <span className="text-[10px] text-neutral-500">
-                      R$ {(h.total_gasto_historico / 1000).toFixed(0)}k
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{h.customer_name}</p>
+                      <p className="text-[10px] text-neutral-500">
+                        Última compra neste mês: {new Date(h.ultima_compra_neste_mes + "T12:00:00").toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${
+                        h.anos_comprou >= 2
+                          ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                          : "bg-white/5 text-neutral-400 border border-white/10"
+                      }`}>
+                        {h.anos_comprou} {h.anos_comprou === 1 ? "ano" : "anos"}
+                      </span>
+                      <span className="text-xs font-black text-teal-400">
+                        R$ {h.total_gasto_historico.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Insights M.A.I.A */}
       <div className="glass-card rounded-xl border border-teal-500/20 bg-teal-500/5 mb-6 overflow-hidden">

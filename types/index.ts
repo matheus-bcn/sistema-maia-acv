@@ -76,6 +76,7 @@ export interface CustomerStats {
   customer_name: string;
   total_gasto: number;
   total_compras: number;
+  primeira_compra: string;
   ultima_compra: string;
   ticket_medio: number;
   atendentes: string[];
