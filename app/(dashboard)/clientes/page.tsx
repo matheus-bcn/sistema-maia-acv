@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
-import { PeriodoFilter } from "@/components/PeriodoFilter";
 import { ClienteDrawer } from "@/components/ClienteDrawer";
 import { createClient } from "@/lib/supabase/client";
-import { getCustomerStats } from "@/lib/data/customers";
+import { getCustomerStats, getHabitualBuyers, type HabitualBuyer } from "@/lib/data/customers";
 import { analisarClientesAction } from "@/lib/actions/ai-actions";
 import type { CustomerStats } from "@/types";
+
+const MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 type StatusFilter = "todos" | "vip" | "novo" | "regular" | "dormente";
 
@@ -49,14 +50,10 @@ export default function ClientesPage() {
   const [insightsGerados, setInsightsGerados] = useState(false);
   const [insightErro, setInsightErro] = useState<string | null>(null);
   const [clienteSelecionado, setClienteSelecionado] = useState<CustomerStats | null>(null);
+  const [habituais, setHabituais] = useState<HabitualBuyer[]>([]);
+  const [loadingHabituais, setLoadingHabituais] = useState(true);
 
-  const [periodo, setPeriodo] = useState(() => {
-    const now = new Date();
-    return {
-      inicio: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0],
-      fim: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0],
-    };
-  });
+  const mesAtual = new Date().getMonth() + 1;
 
   const carregarClientes = useCallback(async () => {
     setLoading(true);
@@ -64,16 +61,27 @@ export default function ClientesPage() {
     setInsights([]);
     setInsightsGerados(false);
     try {
-      const data = await getCustomerStats(supabase, periodo.inicio, periodo.fim);
+      const data = await getCustomerStats(supabase);
       setClientes(data);
-    } catch (err) {
+    } catch {
       setError("Falha ao carregar dados de clientes.");
     } finally {
       setLoading(false);
     }
-  }, [supabase, periodo]);
+  }, [supabase]);
+
+  const carregarHabituais = useCallback(async () => {
+    setLoadingHabituais(true);
+    try {
+      const data = await getHabitualBuyers(supabase, mesAtual);
+      setHabituais(data);
+    } finally {
+      setLoadingHabituais(false);
+    }
+  }, [supabase, mesAtual]);
 
   useEffect(() => { carregarClientes(); }, [carregarClientes]);
+  useEffect(() => { carregarHabituais(); }, [carregarHabituais]);
 
   const gerarInsights = async () => {
     if (clientes.length === 0) return;
@@ -83,6 +91,11 @@ export default function ClientesPage() {
       const ticketMedioGeral =
         clientes.length > 0 ? clientes.reduce((s, c) => s + c.total_gasto, 0) / clientes.reduce((s, c) => s + c.total_compras, 0) : 0;
 
+      const now = new Date();
+      const periodo = {
+        inicio: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0],
+        fim: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0],
+      };
       const result = await analisarClientesAction({
         periodo,
         totalClientes: clientes.length,
@@ -135,19 +148,12 @@ export default function ClientesPage() {
   return (
     <div className="max-w-7xl mx-auto pb-24">
       {/* Header */}
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
-            <Icon icon="mdi:account-multiple" className="h-8 w-8 text-teal-400" />
-            Clientes · CRM
-          </h2>
-          <p className="text-neutral-400 mt-1">Análise de comportamento e histórico de compras</p>
-        </div>
-        <PeriodoFilter
-          inicio={periodo.inicio}
-          fim={periodo.fim}
-          onChange={(inicio, fim) => setPeriodo({ inicio, fim })}
-        />
+      <header className="mb-8">
+        <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
+          <Icon icon="mdi:account-multiple" className="h-8 w-8 text-teal-400" />
+          Clientes · CRM
+        </h2>
+        <p className="text-neutral-400 mt-1">Análise de comportamento baseada em todo o histórico de compras</p>
       </header>
 
       {/* Stats cards */}
@@ -172,6 +178,73 @@ export default function ClientesPage() {
             <p className="text-2xl font-black text-white">{loading ? "—" : card.value}</p>
           </motion.div>
         ))}
+      </div>
+
+      {/* Card: Compradores Habituais do Mês */}
+      <div className="glass-card rounded-xl border border-violet-500/20 bg-violet-500/5 mb-6 overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
+              <Icon icon="mdi:calendar-star" className="h-5 w-5 text-violet-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                Compradores Habituais de {MESES_PT[mesAtual - 1]}
+              </h3>
+              <p className="text-[10px] text-violet-300/60 font-bold uppercase tracking-widest">
+                Clientes que historicamente compram neste mês
+              </p>
+            </div>
+          </div>
+
+          {loadingHabituais ? (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-44 h-20 bg-white/5 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : habituais.length === 0 ? (
+            <p className="text-xs text-neutral-500 italic">
+              Nenhum cliente com histórico de compras neste mês nos anos anteriores.
+            </p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {habituais.map((h) => (
+                <motion.div
+                  key={h.customer_name}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex-shrink-0 w-48 rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 cursor-pointer hover:border-violet-400/40 transition-colors"
+                  onClick={() => {
+                    const found = clientes.find(c => c.customer_name === h.customer_name);
+                    if (found) setClienteSelecionado(found);
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-7 h-7 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-[10px] font-black text-violet-300 flex-shrink-0">
+                      {h.customer_name.charAt(0)}
+                    </div>
+                    <span className="text-xs font-bold text-white truncate" title={h.customer_name}>
+                      {h.customer_name}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                      h.anos_comprou >= 2
+                        ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                        : "bg-white/5 text-neutral-400 border border-white/10"
+                    }`}>
+                      {h.anos_comprou} {h.anos_comprou === 1 ? "ano" : "anos"}
+                    </span>
+                    <span className="text-[10px] text-neutral-500">
+                      R$ {(h.total_gasto_historico / 1000).toFixed(0)}k
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Insights M.A.I.A */}
@@ -338,7 +411,7 @@ export default function ClientesPage() {
                       <Icon icon="mdi:account-search" className="h-12 w-12 text-neutral-700 mx-auto mb-3" />
                       <p className="text-neutral-500 font-medium">
                         {clientes.length === 0
-                          ? "Nenhum cliente com nome identificado no período. Importe relatórios do PDV para popular o CRM."
+                          ? "Nenhum cliente com nome identificado no histórico. Importe relatórios do PDV para popular o CRM."
                           : "Nenhum cliente encontrado com esses filtros."}
                       </p>
                     </td>
