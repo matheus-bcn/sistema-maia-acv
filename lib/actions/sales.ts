@@ -76,6 +76,11 @@ type ImportRow = {
   pdv_number: string;
 };
 
+// Normaliza nome de cliente: maiúsculas + espaços simples
+function normalizeCustomerName(name: string): string {
+  return name.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
 // Detecta o formato do relatório pelo conteúdo do arquivo
 function detectFileFormat(text: string): "atendimento" | "comercial" | "unknown" {
   // Assinatura do relatório comercial (O.S.)
@@ -103,10 +108,10 @@ function parseAtendimentoReport(text: string, sellerId: string): ImportRow[] {
 
     const match = trimmed.match(fullPattern);
     if (match) {
-      const pdv_number = match[2];
+      const pdv_number = match[1]; // Nº da transação/venda (único por operação)
       const [d, m, y] = match[3].split("/");
       const sale_date = `${y}-${m}-${d}`;
-      const customer_name = match[4].trim();
+      const customer_name = normalizeCustomerName(match[4]);
       const amount = parseFloat(match[5].replace(/\./g, "").replace(",", "."));
       if (!isNaN(amount) && amount > 0) {
         rows.push({ seller_id: sellerId, amount, sale_date, channel: "atendimento", customer_name, pdv_number });
@@ -193,7 +198,7 @@ function parseComercialReport(text: string, sellerId: string): ImportRow[] {
     const amount = parseFloat(valueMatch[1].replace(/\./g, "").replace(",", "."));
     if (isNaN(amount) || amount <= 0) continue;
 
-    const customer_name = extractCustomerComercial(rawLine, isType2);
+    const customer_name = normalizeCustomerName(extractCustomerComercial(rawLine, isType2));
 
     rows.push({ seller_id: sellerId, amount, sale_date, channel: "comercial", customer_name, pdv_number });
   }
@@ -239,7 +244,30 @@ export async function importPdvReportAction(
       return { error: "Nenhuma linha válida encontrada. Verifique se o arquivo possui transações com valores reais." };
     }
 
-    const result = await importSalesFromRows(supabase, rows);
+    // Deduplicação: remove linhas cujo número de transação já existe no banco para este vendedor
+    const pdvNumbers = rows.map(r => r.pdv_number).filter(Boolean);
+    let uniqueRows = rows;
+    let skippedCount = 0;
+
+    if (pdvNumbers.length > 0) {
+      const { data: existingRecords } = await supabase
+        .from("sales")
+        .select("pdv_number")
+        .eq("seller_id", sellerId)
+        .in("pdv_number", pdvNumbers);
+
+      if (existingRecords && existingRecords.length > 0) {
+        const existingSet = new Set(existingRecords.map((r: any) => r.pdv_number).filter(Boolean));
+        uniqueRows = rows.filter(r => !r.pdv_number || !existingSet.has(r.pdv_number));
+        skippedCount = rows.length - uniqueRows.length;
+      }
+    }
+
+    if (uniqueRows.length === 0) {
+      return { error: `Relatório já importado. Todas as ${rows.length} transações já existem no sistema.` };
+    }
+
+    const result = await importSalesFromRows(supabase, uniqueRows);
     if (result.error) return { error: result.error };
 
     revalidatePath("/", "layout");
@@ -279,7 +307,7 @@ export async function importPdvReportAction(
       }
     } catch { /* notificação é opcional, não bloqueia o import */ }
 
-    return { success: true, inserted: result.inserted, sellerName };
+    return { success: true, inserted: result.inserted, skipped: skippedCount, sellerName };
 
   } catch (err: any) {
     return { error: "Erro crítico ao ler o arquivo: " + err.message };
