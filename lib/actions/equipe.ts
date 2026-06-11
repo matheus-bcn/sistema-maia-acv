@@ -4,15 +4,37 @@ import { revalidatePath } from "next/cache";
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
-// 1. CRIAR VENDEDOR COM LOGIN SEGURO (E INTEGRAÇÃO COM TRIGGER DO DB)
+async function requireAdmin(): Promise<{ userId: string } | { error: string }> {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Acesso negado: usuário não autenticado." };
+
+  const masterEmail = (
+    process.env.MASTER_ADMIN_EMAIL ||
+    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
+    "admin@onlinegrafica.com"
+  ).toLowerCase();
+
+  if (user.email?.toLowerCase() === masterEmail) return { userId: user.id };
+
+  const { data } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!data?.is_admin) return { error: "Acesso negado: apenas administradores." };
+
+  return { userId: user.id };
+}
+
+// 1. CRIAR VENDEDOR COM LOGIN SEGURO
 export async function criarVendedorComLoginAction(
-  nome: string, 
-  email: string, 
-  senha: string, 
+  nome: string,
+  email: string,
+  senha: string,
   is_admin: boolean = false,
   phone: string = "",
   category: string = "Iniciante"
 ) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { success: false, error: auth.error };
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -23,12 +45,11 @@ export async function criarVendedorComLoginAction(
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-    // A. Cria o usuário no Auth (Isso dispara a Trigger no DB que cria a linha em 'sellers')
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: senha,
       email_confirm: true,
-      user_metadata: { name: nome } // Passa o nome para a Trigger
+      user_metadata: { name: nome },
     });
 
     if (authError && !authError.message.includes("already been registered")) {
@@ -37,7 +58,6 @@ export async function criarVendedorComLoginAction(
 
     const userId = authData?.user?.id;
 
-    // B. Upsert do perfil — funciona mesmo que a trigger não tenha rodado
     if (userId) {
       const { error: dbError } = await supabaseAdmin.from('sellers').upsert({
         id: userId,
@@ -45,8 +65,8 @@ export async function criarVendedorComLoginAction(
         email: email,
         phone: phone,
         role: category,
-        is_admin: is_admin,
-        status: 'Ativo'
+        is_admin: is_admin, // safe: caller already verified as admin above
+        status: 'Ativo',
       }, { onConflict: 'id' });
 
       if (dbError) throw new Error("Erro ao salvar perfil: " + dbError.message);
@@ -69,7 +89,7 @@ export async function updateSellerStatusAction(id: string, status: "Ativo" | "In
   if (!user) throw new Error("Acesso negado.");
 
   const { error } = await supabase.from('sellers').update({ status }).eq('id', id);
-  
+
   if (error) throw new Error(error.message);
 
   revalidatePath("/equipe");
@@ -77,8 +97,11 @@ export async function updateSellerStatusAction(id: string, status: "Ativo" | "In
   return true;
 }
 
-// 3. DELETAR LOGIN E OCULTAR VENDEDOR (Soft Delete)
+// 3. DELETAR LOGIN E OCULTAR VENDEDOR
 export async function deletarVendedorAction(id: string, email: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { success: false, error: auth.error };
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -86,14 +109,12 @@ export async function deletarVendedorAction(id: string, email: string) {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
-    // A. Soft Delete no banco
-    const { error: dbError } = await supabaseAdmin.from('sellers').update({ 
-      status: 'Inativo' 
+    const { error: dbError } = await supabaseAdmin.from('sellers').update({
+      status: 'Inativo',
     }).eq('id', id);
 
     if (dbError) throw new Error("Erro ao desativar vendedor: " + dbError.message);
 
-    // B. Deleta o acesso na Autenticação
     const { data: { users }, error: authListError } = await supabaseAdmin.auth.admin.listUsers();
     if (authListError) throw new Error("Erro ao buscar usuários: " + authListError.message);
 

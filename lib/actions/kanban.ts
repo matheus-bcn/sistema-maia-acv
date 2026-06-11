@@ -12,7 +12,12 @@ async function resolveActingId(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 async function checkIsAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, email?: string | null) {
-  const masterEmail = (process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com").toLowerCase();
+  // Prefer server-only env var; fall back to NEXT_PUBLIC for backwards compatibility
+  const masterEmail = (
+    process.env.MASTER_ADMIN_EMAIL ||
+    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
+    "admin@onlinegrafica.com"
+  ).toLowerCase();
   if (email && email.toLowerCase() === masterEmail) return true;
   const { data } = await supabase.from("sellers").select("is_admin").eq("id", userId).maybeSingle();
   return !!(data?.is_admin);
@@ -135,13 +140,22 @@ export async function criarCartaoAction(
   targetSellerId?: string,
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
   const { userId, sellerId } = await resolveActingId(supabase, targetSellerId);
   if (!userId) return { error: "Não autenticado." };
 
-  // Usa service role quando vendedor cria cartão no board de outro usuário (ex: painel geral do admin)
-  const boardClient = (targetSellerId && targetSellerId !== userId)
-    ? createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    : supabase;
+  // Service role is only used when writing to another user's board
+  let boardClient: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase;
+  if (targetSellerId && targetSellerId !== userId) {
+    const callerIsAdmin = await checkIsAdmin(supabase, userId, user.email);
+    if (!callerIsAdmin) {
+      // Non-admin: only allowed to write cards to the admin's board (team board)
+      const targetIsAdmin = await checkIsAdmin(supabase, targetSellerId);
+      if (!targetIsAdmin) return { error: "Acesso negado." };
+    }
+    boardClient = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  }
 
   const { data: existing } = await boardClient
     .from("kanban_cards")

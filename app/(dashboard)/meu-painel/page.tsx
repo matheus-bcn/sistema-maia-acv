@@ -262,7 +262,7 @@ export default function MeuPainelPage() {
   const finalizarBatalha = async () => {
     if (!batalha || !vendedor) return;
     setLoadingBatalha(true);
-    await finalizarBatalhaAction(batalha.id, vendedor.id, totalVendido, oponenteTotal);
+    await finalizarBatalhaAction(batalha.id);
     await carregarMeuPainel();
     setLoadingBatalha(false);
   };

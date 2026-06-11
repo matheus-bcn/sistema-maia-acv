@@ -60,6 +60,10 @@ Titulo: máx 6 palavras. Mensagem: 2 frases analíticas. Ação: 1 próximo pass
 };
 
 export async function obterBriefingIAAction(stats: any) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Acesso negado." };
+
   if (!process.env.GROQ_API_KEY) {
     return { success: false, error: "Chave da IA não configurada." };
   }
@@ -116,6 +120,10 @@ export async function obterBriefingIAAction(stats: any) {
 }
 
 export async function analisarRelatorioAction(dadosRelatorio: any) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Acesso negado." };
+
   if (!process.env.GROQ_API_KEY) {
     return { success: false, error: "GROQ_API_KEY não configurada." };
   }
@@ -169,6 +177,10 @@ export async function analisarClientesAction(dados: {
   dormentes: { nome: string; totalGasto: number; diasSemComprar: number }[];
   novos: { nome: string; totalGasto: number; ticketMedio: number }[];
 }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Acesso negado." };
+
   if (!process.env.GROQ_API_KEY) {
     return { success: false, error: "Chave GROQ_API_KEY não configurada no servidor. Adicione-a nas variáveis de ambiente do projeto." };
   }
@@ -247,6 +259,10 @@ export async function analisarVendedorAction(dadosVendedor: {
   totalVendedores: number;
   projecaoFechamento: number;
 }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Acesso negado." };
+
   if (!process.env.GROQ_API_KEY) {
     return { success: false, error: "GROQ_API_KEY não configurada." };
   }
@@ -297,6 +313,10 @@ export async function chatComMAIAAction(
   contexto: ContextoMAIA,
   historico: MensagemHistorico[]
 ) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Acesso negado." };
+
   if (!process.env.GROQ_API_KEY) {
     return { success: false, error: "GROQ_API_KEY não configurada." };
   }
