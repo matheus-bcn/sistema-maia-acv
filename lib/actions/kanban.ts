@@ -12,7 +12,12 @@ async function resolveActingId(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 async function checkIsAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, email?: string | null) {
-  const masterEmail = (process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com").toLowerCase();
+  // Prefer server-only env var; fall back to NEXT_PUBLIC for backwards compatibility
+  const masterEmail = (
+    process.env.MASTER_ADMIN_EMAIL ||
+    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
+    "admin@onlinegrafica.com"
+  ).toLowerCase();
   if (email && email.toLowerCase() === masterEmail) return true;
   const { data } = await supabase.from("sellers").select("is_admin").eq("id", userId).maybeSingle();
   return !!(data?.is_admin);
@@ -135,10 +140,24 @@ export async function criarCartaoAction(
   targetSellerId?: string,
 ) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
   const { userId, sellerId } = await resolveActingId(supabase, targetSellerId);
   if (!userId) return { error: "Não autenticado." };
 
-  const { data: existing } = await supabase
+  // Service role is only used when writing to another user's board
+  let boardClient: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase;
+  if (targetSellerId && targetSellerId !== userId) {
+    const callerIsAdmin = await checkIsAdmin(supabase, userId, user.email);
+    if (!callerIsAdmin) {
+      // Non-admin: only allowed to write cards to the admin's board (team board)
+      const targetIsAdmin = await checkIsAdmin(supabase, targetSellerId);
+      if (!targetIsAdmin) return { error: "Acesso negado." };
+    }
+    boardClient = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  }
+
+  const { data: existing } = await boardClient
     .from("kanban_cards")
     .select("position")
     .eq("list_id", listId)
@@ -147,7 +166,7 @@ export async function criarCartaoAction(
     .maybeSingle();
 
   const position = (existing?.position ?? -1) + 1;
-  const { data, error } = await supabase
+  const { data, error } = await boardClient
     .from("kanban_cards")
     .insert({
       list_id: listId, seller_id: sellerId, title: title.trim(),
@@ -281,4 +300,59 @@ export async function listarVendedoresParaKanbanAction() {
     .order("name");
 
   return data ?? [];
+}
+
+// ── COMENTÁRIOS ─────────────────────────────────────────────
+
+export async function carregarComentariosAction(cardId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: comments } = await supabase
+    .from("kanban_card_comments")
+    .select("*")
+    .eq("card_id", cardId)
+    .order("created_at", { ascending: true });
+
+  if (!comments || comments.length === 0) return [];
+
+  const authorIds = [...new Set(comments.map((c: any) => c.author_id))];
+  const { data: authors } = await supabase
+    .from("sellers")
+    .select("id, name, avatar")
+    .in("id", authorIds);
+
+  const authorMap = Object.fromEntries((authors ?? []).map((a: any) => [a.id, a]));
+  return comments.map((c: any) => ({
+    ...c,
+    author: authorMap[c.author_id] ?? { name: "Admin", avatar: null },
+  }));
+}
+
+export async function criarComentarioAction(cardId: string, content: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const { error } = await supabase
+    .from("kanban_card_comments")
+    .insert({ card_id: cardId, author_id: user.id, content: content.trim() });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function excluirComentarioAction(commentId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const { error } = await supabase
+    .from("kanban_card_comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) return { error: error.message };
+  return { success: true };
 }
