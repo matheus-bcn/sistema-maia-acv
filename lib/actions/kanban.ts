@@ -296,12 +296,24 @@ export async function reordenarCartoesAction(cardIds: string[], listId: string) 
 
 export async function carregarRotinaAction(targetSellerId?: string) {
   const supabase = await createClient();
-  const { userId, sellerId } = await resolveActingId(supabase, targetSellerId);
-  if (!userId) return { lists: [], cards: [] };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { lists: [], cards: [] };
+
+  const sellerId = targetSellerId || user.id;
+
+  // When reading another seller's board, verify admin status and use service role
+  // (RLS uses public.is_admin() which requires sellers.is_admin=true in DB;
+  //  service role bypasses this so email-only admins still work)
+  let client: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient> = supabase;
+  if (targetSellerId && targetSellerId !== user.id) {
+    const isAdmin = await checkIsAdmin(supabase, user.id, user.email);
+    if (!isAdmin) return { lists: [], cards: [] };
+    client = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  }
 
   const [listsRes, cardsRes] = await Promise.all([
-    supabase.from("kanban_lists").select("*").eq("seller_id", sellerId).order("position"),
-    supabase.from("kanban_cards").select("*").eq("seller_id", sellerId).order("position"),
+    client.from("kanban_lists").select("*").eq("seller_id", sellerId).order("position"),
+    client.from("kanban_cards").select("*").eq("seller_id", sellerId).order("position"),
   ]);
   return { lists: listsRes.data ?? [], cards: cardsRes.data ?? [] };
 }
