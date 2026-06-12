@@ -47,38 +47,26 @@ CREATE POLICY "maia_insights_delete" ON public.maia_insights
   USING (EXISTS (SELECT 1 FROM public.sellers WHERE id = auth.uid() AND is_admin = true));
 
 -- ── CUSTOMER_NOTES ───────────────────────────────────────────────────────────
+-- This is a shared CRM table (no per-user ownership column); all authenticated
+-- users can read and write; only admins can delete.
 ALTER TABLE public.customer_notes ENABLE ROW LEVEL SECURITY;
 
--- Sellers see their own notes; admins see all
 CREATE POLICY "customer_notes_select" ON public.customer_notes
   FOR SELECT TO authenticated
-  USING (
-    seller_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.sellers WHERE id = auth.uid() AND is_admin = true)
-  );
+  USING (true);
 
--- Sellers create notes attributed to themselves only
 CREATE POLICY "customer_notes_insert" ON public.customer_notes
   FOR INSERT TO authenticated
-  WITH CHECK (seller_id = auth.uid());
+  WITH CHECK (true);
 
--- Sellers update their own notes; admins update any
 CREATE POLICY "customer_notes_update" ON public.customer_notes
   FOR UPDATE TO authenticated
-  USING (
-    seller_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.sellers WHERE id = auth.uid() AND is_admin = true)
-  )
-  WITH CHECK (
-    seller_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM public.sellers WHERE id = auth.uid() AND is_admin = true)
-  );
+  USING (true)
+  WITH CHECK (true);
 
--- Sellers delete their own notes; admins delete any
 CREATE POLICY "customer_notes_delete" ON public.customer_notes
   FOR DELETE TO authenticated
   USING (
-    seller_id = auth.uid() OR
     EXISTS (SELECT 1 FROM public.sellers WHERE id = auth.uid() AND is_admin = true)
   );
 
