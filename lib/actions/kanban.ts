@@ -323,9 +323,14 @@ export async function listarVendedoresParaKanbanAction() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Sellers list is non-sensitive (all authenticated users can already read it via RLS).
-  // Admin gate is enforced in the UI; here we just verify authentication.
-  const { data } = await supabase
+  // Use service role so the query works even when the admin has no sellers row
+  // (admin identified by email only, not by is_admin flag in sellers table).
+  const serviceClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data } = await serviceClient
     .from("sellers")
     .select("id, name, avatar")
     .eq("status", "Ativo")
