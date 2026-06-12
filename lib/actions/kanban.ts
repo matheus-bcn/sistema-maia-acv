@@ -41,14 +41,35 @@ export async function carregarPainelGeralAction() {
     return { lists: listsRes.data ?? [], cards: cardsRes.data ?? [], adminId, isAdmin: true };
   }
 
-  // Vendedor comum: carrega o board do primeiro admin da tabela sellers
-  const { data: adminSeller } = await supabase
+  // Non-admin: find the admin's board — try is_admin flag first, then fall back to
+  // matching the master email (covers cases where the admin row has is_admin = false).
+  const masterEmail = (
+    process.env.MASTER_ADMIN_EMAIL ||
+    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
+    ""
+  ).toLowerCase();
+
+  let adminSeller: { id: string } | null = null;
+
+  const { data: byFlag } = await supabase
     .from("sellers")
     .select("id")
     .eq("is_admin", true)
     .eq("status", "Ativo")
     .limit(1)
     .maybeSingle();
+
+  if (byFlag) {
+    adminSeller = byFlag;
+  } else if (masterEmail) {
+    const { data: byEmail } = await supabase
+      .from("sellers")
+      .select("id")
+      .eq("email", masterEmail)
+      .limit(1)
+      .maybeSingle();
+    adminSeller = byEmail ?? null;
+  }
 
   if (!adminSeller) return { lists: [], cards: [], adminId: null, isAdmin: false };
 
@@ -290,9 +311,8 @@ export async function listarVendedoresParaKanbanAction() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const isAdmin = await checkIsAdmin(supabase, user.id, user.email);
-  if (!isAdmin) return [];
-
+  // Sellers list is non-sensitive (all authenticated users can already read it via RLS).
+  // Admin gate is enforced in the UI; here we just verify authentication.
   const { data } = await supabase
     .from("sellers")
     .select("id, name, avatar")
