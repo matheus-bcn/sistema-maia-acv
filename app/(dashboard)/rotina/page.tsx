@@ -857,64 +857,83 @@ export default function RotinaPage() {
       {/* Header */}
       <header className="mb-4 flex-shrink-0">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="text-4xl font-black tracking-tight flex items-center gap-3">
-              <Icon icon="mdi:view-column" className="h-8 w-8 text-violet-400" />
-              Rotina
-            </h2>
-            <p className="text-neutral-400 mt-0.5 text-sm">Organize tarefas e rotinas da equipe</p>
+          {/* Título com tile */}
+          <div className="flex items-center gap-3">
+            <div style={{
+              width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+              background: "linear-gradient(135deg, rgba(167,139,250,0.25), rgba(124,58,237,0.12))",
+              border: "1px solid rgba(167,139,250,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Icon icon="mdi:view-column" style={{ fontSize: 24, color: "#a78bfa" }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.8px", color: "#fff", lineHeight: 1.15, margin: 0 }}>
+                Rotina · Tarefas
+              </h1>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", margin: 0, marginTop: 2 }}>
+                Quadro de atividades diárias do time comercial
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Botões de modo */}
-            <div className="flex bg-neutral-900 border border-white/10 rounded-xl p-1 gap-1">
-              {!isAdmin ? (
-                // Vendedor: MEU PAINEL + PAINEL GERAL
-                <>
-                  <button type="button" onClick={() => handleModeChange("meu")}
-                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-                      mode === "meu" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
-                    )}>
-                    <Icon icon="mdi:account-circle" className="h-3.5 w-3.5" />
-                    MEU PAINEL
-                  </button>
-                  <button type="button" onClick={() => handleModeChange("geral")}
-                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-                      mode === "geral" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
-                    )}>
-                    <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
-                    PAINEL GERAL
-                  </button>
-                </>
-              ) : (
-                // Admin: PAINEL GERAL + PAINEL VENDEDOR
-                <>
-                  <button type="button" onClick={() => handleModeChange("geral")}
-                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-                      mode === "geral" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
-                    )}>
-                    <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
-                    PAINEL GERAL
-                  </button>
-                  <button type="button" onClick={() => handleModeChange("vendedor")}
-                    className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-                      mode === "vendedor" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
-                    )}>
-                    <Icon icon="mdi:account-group" className="h-3.5 w-3.5" />
-                    PAINEL VENDEDOR
-                  </button>
-                </>
-              )}
-            </div>
+          {/* CTA Nova tarefa */}
+          {(canEdit || canAddCard) && (
+            <button type="button" onClick={handleNovaLista}
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #ec4899)",
+                boxShadow: "0 6px 20px rgba(124,58,237,0.35)",
+                borderRadius: 12,
+                padding: "11px 16px",
+                display: "flex", alignItems: "center", gap: 6,
+                color: "#fff", fontWeight: 700, fontSize: 13,
+                border: "none", cursor: "pointer", flexShrink: 0,
+              }}>
+              <Icon icon="mdi:plus" style={{ fontSize: 18 }} />
+              Nova tarefa
+            </button>
+          )}
+        </div>
 
-            {/* NOVA LISTA:
-                - Vendedor: sempre visível, cria no MEU PAINEL
-                - Admin: visível no geral ou vendedor com seller selecionado */}
-            {(!isAdmin || (mode === "geral" || (mode === "vendedor" && selectedSellerId))) && (
-              <button type="button" onClick={handleNovaLista}
-                className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:bg-neutral-200 hover:scale-105">
-                <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Lista
-              </button>
+        {/* Botões de modo */}
+        <div className="flex items-center gap-2 flex-wrap mt-4">
+          <div className="flex bg-neutral-900 border border-white/10 rounded-xl p-1 gap-1">
+            {!isAdmin ? (
+              // Vendedor: MEU PAINEL + PAINEL GERAL
+              <>
+                <button type="button" onClick={() => handleModeChange("meu")}
+                  className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                    mode === "meu" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
+                  )}>
+                  <Icon icon="mdi:account-circle" className="h-3.5 w-3.5" />
+                  MEU PAINEL
+                </button>
+                <button type="button" onClick={() => handleModeChange("geral")}
+                  className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                    mode === "geral" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
+                  )}>
+                  <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
+                  PAINEL GERAL
+                </button>
+              </>
+            ) : (
+              // Admin: PAINEL GERAL + PAINEL VENDEDOR
+              <>
+                <button type="button" onClick={() => handleModeChange("geral")}
+                  className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                    mode === "geral" ? "bg-white text-black shadow" : "text-neutral-400 hover:text-white"
+                  )}>
+                  <Icon icon="mdi:view-grid" className="h-3.5 w-3.5" />
+                  PAINEL GERAL
+                </button>
+                <button type="button" onClick={() => handleModeChange("vendedor")}
+                  className={cn("flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all",
+                    mode === "vendedor" ? "bg-violet-500 text-white shadow" : "text-neutral-400 hover:text-white"
+                  )}>
+                  <Icon icon="mdi:account-group" className="h-3.5 w-3.5" />
+                  PAINEL VENDEDOR
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -955,6 +974,17 @@ export default function RotinaPage() {
           )}
         </AnimatePresence>
       </header>
+
+      {/* Banner M.A.I.A */}
+      {!loading && lists.length > 0 && (
+        <div style={{ borderRadius: 14, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, background: "rgba(20,184,166,0.05)", border: "1px solid rgba(20,184,166,0.2)" }}>
+          <Icon icon="mdi:brain" style={{ fontSize: 20, color: "#2dd4bf", flexShrink: 0 }} />
+          <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.45, color: "rgba(255,255,255,0.7)" }}>
+            <span style={{ color: "#2dd4bf", fontWeight: 800 }}>M.A.I.A priorizou: </span>
+            Conclua as tarefas com prazo para hoje e mantenha o ritmo da equipe em dia.
+          </p>
+        </div>
+      )}
 
       {/* Board */}
       {loading ? (
