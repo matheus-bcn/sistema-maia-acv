@@ -41,12 +41,12 @@ export async function carregarPainelGeralAction() {
     return { lists: listsRes.data ?? [], cards: cardsRes.data ?? [], adminId, isAdmin: true };
   }
 
-  // Non-admin: find the admin's board — try is_admin flag first, then fall back to
-  // matching the master email (covers cases where the admin row has is_admin = false).
+  // Non-admin: find the admin's board — try is_admin flag first (any status),
+  // then fall back to matching the master email.
   const masterEmail = (
     process.env.MASTER_ADMIN_EMAIL ||
     process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
-    ""
+    "admin@onlinegrafica.com"
   ).toLowerCase();
 
   let adminSeller: { id: string } | null = null;
@@ -55,13 +55,13 @@ export async function carregarPainelGeralAction() {
     .from("sellers")
     .select("id")
     .eq("is_admin", true)
-    .eq("status", "Ativo")
+    .order("status", { ascending: false }) // Ativo antes de Inativo
     .limit(1)
     .maybeSingle();
 
   if (byFlag) {
     adminSeller = byFlag;
-  } else if (masterEmail) {
+  } else {
     const { data: byEmail } = await supabase
       .from("sellers")
       .select("id")
@@ -323,14 +323,9 @@ export async function listarVendedoresParaKanbanAction() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Use service role so the query works even when the admin has no sellers row
-  // (admin identified by email only, not by is_admin flag in sellers table).
-  const serviceClient = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const { data } = await serviceClient
+  // Sellers list is non-sensitive (all authenticated users can already read it via RLS).
+  // Admin gate is enforced in the UI; here we just verify authentication.
+  const { data } = await supabase
     .from("sellers")
     .select("id, name, avatar")
     .eq("status", "Ativo")
