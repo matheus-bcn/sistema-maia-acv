@@ -204,7 +204,6 @@ export default function Home() {
 
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
-  const comercialOffset = circumference - (canais.pctComercial / 100) * circumference;
 
   const chartMax = useMemo(() => {
     if (!chartDiario.length) return 1;
@@ -1890,35 +1889,33 @@ export default function Home() {
               >
                 <div style={{ position: "relative", width: 168, height: 168, flexShrink: 0 }}>
                   <svg
-                    viewBox="0 0 100 100"
+                    viewBox="0 0 120 120"
                     style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}
                   >
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="transparent"
-                      stroke="rgba(99,102,241,0.15)"
-                      strokeWidth="11"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="transparent"
-                      stroke="url(#tealGradDB)"
-                      strokeWidth="11"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={comercialOffset}
-                      strokeLinecap="round"
-                      style={{ transition: "stroke-dashoffset 1s ease" }}
-                    />
                     <defs>
                       <linearGradient id="tealGradDB" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#14b8a6" />
                         <stop offset="100%" stopColor="#06b6d4" />
                       </linearGradient>
                     </defs>
+                    {/* Track */}
+                    <circle cx="60" cy="60" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="13" />
+                    {/* Comercial arc (teal) */}
+                    <circle
+                      cx="60" cy="60" r={radius} fill="none"
+                      stroke="url(#tealGradDB)" strokeWidth="13" strokeLinecap="round"
+                      strokeDasharray={`${Math.max(0, (canais.pctComercial / 100) * circumference - 4)} ${circumference}`}
+                      strokeDashoffset={0}
+                      style={{ transition: "stroke-dasharray 1s ease" }}
+                    />
+                    {/* Atendimento arc (indigo) */}
+                    <circle
+                      cx="60" cy="60" r={radius} fill="none"
+                      stroke="#6366f1" strokeWidth="13" strokeLinecap="round"
+                      strokeDasharray={`${Math.max(0, (canais.pctAtendimento / 100) * circumference - 4)} ${circumference}`}
+                      strokeDashoffset={-((canais.pctComercial / 100) * circumference)}
+                      style={{ transition: "stroke-dasharray 1s ease" }}
+                    />
                   </svg>
                   <div
                     style={{
