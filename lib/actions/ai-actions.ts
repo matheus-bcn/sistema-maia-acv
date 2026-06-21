@@ -8,6 +8,12 @@ const MODEL = "llama-3.3-70b-versatile";
 
 type InsightTipo = "ALERTA" | "PARABENS" | "DICA" | "NEUTRO";
 
+interface StatsInput {
+  totalFaturado: number;
+  metaGlobal: number;
+  qtdVendas: number;
+}
+
 export type MensagemHistorico = {
   role: "user" | "model";
   content: string;
@@ -20,14 +26,15 @@ export type ContextoMAIA = {
   diagnosticos: { nome: string; realizado: number; meta: number; status: string }[];
 };
 
-function classificarTipo(stats: any): InsightTipo {
+function classificarTipo(stats: StatsInput): InsightTipo {
   const pct = stats.metaGlobal > 0 ? (stats.totalFaturado / stats.metaGlobal) * 100 : 0;
   if (pct >= 100) return "PARABENS";
   if (pct < 60) return "ALERTA";
-  return Math.random() > 0.5 ? "DICA" : "NEUTRO";
+  // Alterna entre DICA e NEUTRO com base no dia para ser determinístico
+  return new Date().getDate() % 2 === 0 ? "DICA" : "NEUTRO";
 }
 
-const PROMPTS: Record<InsightTipo, (stats: any) => string> = {
+const PROMPTS: Record<InsightTipo, (stats: StatsInput) => string> = {
   ALERTA: (s) => `
 Você é M.A.I.A, IA de análise comercial. Tom: direto e motivador.
 Dados: Faturado R$ ${s.totalFaturado.toLocaleString("pt-BR")}, Meta R$ ${s.metaGlobal.toLocaleString("pt-BR")}, ${s.qtdVendas} vendas.
@@ -59,7 +66,7 @@ Retorne APENAS JSON: {"titulo":"...","mensagem":"...","acao":"...","tipo":"NEUTR
 Titulo: máx 6 palavras. Mensagem: 2 frases analíticas. Ação: 1 próximo passo claro.`,
 };
 
-export async function obterBriefingIAAction(stats: any) {
+export async function obterBriefingIAAction(stats: StatsInput) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Acesso negado." };

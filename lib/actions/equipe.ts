@@ -82,22 +82,7 @@ export async function criarVendedorComLoginAction(
   }
 }
 
-// 2. ATUALIZAR STATUS DO VENDEDOR (Ativo/Inativo)
-export async function updateSellerStatusAction(id: string, status: "Ativo" | "Inativo") {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Acesso negado.");
-
-  const { error } = await supabase.from('sellers').update({ status }).eq('id', id);
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/equipe");
-  revalidatePath("/dashboard", "layout");
-  return true;
-}
-
-// 3. DELETAR LOGIN E OCULTAR VENDEDOR
+// 2. DELETAR LOGIN E OCULTAR VENDEDOR
 export async function deletarVendedorAction(id: string, email: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { success: false, error: auth.error };
