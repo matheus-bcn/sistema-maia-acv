@@ -259,51 +259,80 @@ export default function Home() {
 
   return (
     <>
-      <header className="mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between relative z-50">
-        <div>
-          <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
-            <div className="p-2 rounded-xl icon-badge-orange">
-              <Icon icon="mdi:view-dashboard" className="h-6 w-6" />
-            </div>
-            <span className="text-white">Dashboard</span>
-          </h2>
-          <p className="text-white/40 mt-1 text-sm">Acompanhamento de Vendas da Equipe</p>
+      <header
+        style={{ marginBottom: 22, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
+        className="relative z-50"
+      >
+        {/* Left: tile + title */}
+        <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+          <div
+            style={{
+              width: 46, height: 46, borderRadius: 14,
+              background: "linear-gradient(135deg, rgba(249,115,22,0.25), rgba(234,88,12,0.12))",
+              border: "1px solid rgba(249,115,22,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#f97316", flexShrink: 0,
+            }}
+          >
+            <Icon icon="line-md:home-twotone" style={{ fontSize: 24 }} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.8px", color: "#fff" }}>
+              Dashboard · Visão Geral
+            </h1>
+            <p style={{ margin: "3px 0 0", fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
+              Acompanhamento de Vendas da Equipe
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 items-center w-full sm:w-auto">
+        {/* Right: action buttons */}
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="relative">
-            <button onClick={() => setIsDatePickerOpen(!isDatePickerOpen)} className={`flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors backdrop-blur-md ${isDatePickerOpen ? "bg-white/10 border-white/30 text-white" : "bg-black/40 border-white/10 text-neutral-300 hover:bg-white/10"}`}>
+            <button
+              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${isDatePickerOpen ? "bg-white/10 border-white/30 text-white" : "bg-white/5 border-white/10 text-neutral-300 hover:bg-white/10"}`}
+            >
               <Icon icon="line-md:calendar" className="h-4 w-4 text-neutral-400" />
               <span>{periodo.inicio.split('-').reverse().join('/')} - {periodo.fim.split('-').reverse().join('/')}</span>
             </button>
             <AnimatePresence>
               {isDatePickerOpen && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-72 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 top-full mt-2 w-72 bg-[#111] border border-white/10 rounded-xl p-4 shadow-2xl z-50 flex flex-col gap-4"
+                >
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-bold text-white">Selecionar Período</span>
-                    <button onClick={() => setIsDatePickerOpen(false)} className="text-neutral-500 hover:text-white"><Icon icon="line-md:close" className="h-4 w-4" /></button>
+                    <button onClick={() => setIsDatePickerOpen(false)} className="text-neutral-500 hover:text-white">
+                      <Icon icon="line-md:close" className="h-4 w-4" />
+                    </button>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-neutral-400 uppercase font-semibold">Data Inicial</label>
-                    <input type="date" value={periodo.inicio} onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 invert-[0.8] brightness-200" />
+                    <input type="date" value={periodo.inicio} onChange={(e) => setPeriodo(prev => ({ ...prev, inicio: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 cursor-pointer [color-scheme:dark]" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-neutral-400 uppercase font-semibold">Data Final</label>
-                    <input type="date" value={periodo.fim} onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 invert-[0.8] brightness-200" />
+                    <input type="date" value={periodo.fim} onChange={(e) => setPeriodo(prev => ({ ...prev, fim: e.target.value }))} className="bg-black border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 cursor-pointer [color-scheme:dark]" />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="flex gap-3 ml-auto sm:ml-0">
-            <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold transition-all hover:bg-white/10 hover:border-white/20 backdrop-blur-md">
-              <Icon icon="mdi:cloud-upload" className="h-4 w-4 text-white/60" /> Importar Relatório
-            </button>
-            <button onClick={() => setIsNovaVendaOpen(true)} className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold btn-gradient-orange">
-              <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Venda
-            </button>
-          </div>
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold transition-all hover:bg-white/10 hover:border-white/20"
+          >
+            <Icon icon="mdi:cloud-upload" className="h-4 w-4 text-white/60" /> Importar Relatório
+          </button>
+          <button
+            onClick={() => setIsNovaVendaOpen(true)}
+            className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold btn-gradient-orange"
+          >
+            <Icon icon="mdi:plus" className="h-4 w-4" /> Nova Venda
+          </button>
         </div>
       </header>
 
