@@ -156,7 +156,7 @@ export default function Home() {
   }, [totalFaturado, qtdVendas]);
 
   const ritmoGauge = useMemo(() => {
-    if (!metaGlobal) return { status: "—", diff: 0, fillFraction: 0 };
+    if (!metaGlobal) return { status: "—", diff: 0, fillFraction: 0, activeZone: 0, needleAngle: -90 };
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -183,10 +183,23 @@ export default function Home() {
     const diff = pacing - 100;
 
     let status = "Abaixo";
-    if (pacing >= 105) status = "Acima";
-    else if (pacing >= 90) status = "No ritmo";
+    let activeZone = 1;
+    if (pacing >= 120) { status = "Ótimo"; activeZone = 4; }
+    else if (pacing >= 100) { status = "No Ritmo"; activeZone = 3; }
+    else if (pacing >= 80) { status = "Normal"; activeZone = 2; }
 
-    return { status, diff, fillFraction: Math.min(Math.max(pacing / 150, 0), 1) };
+    let needleAngle = -90;
+    if (pacing < 80) {
+      needleAngle = -90 + (pacing / 80) * 45;
+    } else if (pacing < 100) {
+      needleAngle = -45 + ((pacing - 80) / 20) * 45;
+    } else if (pacing < 120) {
+      needleAngle = 0 + ((pacing - 100) / 20) * 45;
+    } else {
+      needleAngle = 45 + ((Math.min(pacing, 150) - 120) / 30) * 45;
+    }
+
+    return { status, diff, fillFraction: Math.min(Math.max(pacing / 150, 0), 1), activeZone, needleAngle };
   }, [metaGlobal, totalFaturado, periodo]);
 
   const maiaUpdatedAt = useMemo(() => {
@@ -1340,60 +1353,63 @@ export default function Home() {
                 >
                   Ritmo da Meta
                 </span>
-                <svg viewBox="0 0 200 120" style={{ width: 170, height: 102 }}>
-                  <defs>
-                    <linearGradient id="ritmoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop
-                        offset="0%"
-                        stopColor={
-                          ritmoGauge.status === "Abaixo"
-                            ? "#f87171"
-                            : ritmoGauge.status === "No ritmo"
-                            ? "#fbbf24"
-                            : "#14b8a6"
-                        }
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={
-                          ritmoGauge.status === "Abaixo"
-                            ? "#ef4444"
-                            : ritmoGauge.status === "No ritmo"
-                            ? "#f97316"
-                            : "#06b6d4"
-                        }
-                      />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M20,100 A80,80 0 0 1 180,100"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.08)"
-                    strokeWidth="14"
-                    strokeLinecap="round"
+                <svg viewBox="0 0 200 130" style={{ width: 180, height: 117, overflow: "visible" }}>
+                  {/* Zone 1 – Abaixo (red) */}
+                  <path d="M20,100 A80,80 0 0 1 180,100" fill="none" stroke="#f43f5e" strokeWidth="14" strokeLinecap="round"
+                    strokeDasharray="60.8 251.3" strokeDashoffset="0"
+                    opacity={ritmoGauge.activeZone === 1 ? 1 : 0.15}
+                    style={{ filter: ritmoGauge.activeZone === 1 ? "drop-shadow(0 0 8px rgba(244,63,94,0.7))" : "none", transition: "opacity 0.5s" }}
                   />
-                  <path
-                    d="M20,100 A80,80 0 0 1 180,100"
-                    fill="none"
-                    stroke="url(#ritmoGrad)"
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                    strokeDasharray="251.3"
-                    strokeDashoffset={251.3 * (1 - ritmoGauge.fillFraction)}
-                    style={{ transition: "stroke-dashoffset 1s ease" }}
+                  {/* Zone 2 – Normal (yellow) */}
+                  <path d="M20,100 A80,80 0 0 1 180,100" fill="none" stroke="#facc15" strokeWidth="14" strokeLinecap="round"
+                    strokeDasharray="60.8 251.3" strokeDashoffset="-62.8"
+                    opacity={ritmoGauge.activeZone === 2 ? 1 : 0.15}
+                    style={{ filter: ritmoGauge.activeZone === 2 ? "drop-shadow(0 0 8px rgba(250,204,21,0.7))" : "none", transition: "opacity 0.5s" }}
                   />
+                  {/* Zone 3 – No Ritmo (teal) */}
+                  <path d="M20,100 A80,80 0 0 1 180,100" fill="none" stroke="#34d399" strokeWidth="14" strokeLinecap="round"
+                    strokeDasharray="60.8 251.3" strokeDashoffset="-125.6"
+                    opacity={ritmoGauge.activeZone === 3 ? 1 : 0.15}
+                    style={{ filter: ritmoGauge.activeZone === 3 ? "drop-shadow(0 0 8px rgba(52,211,153,0.7))" : "none", transition: "opacity 0.5s" }}
+                  />
+                  {/* Zone 4 – Ótimo (sky) */}
+                  <path d="M20,100 A80,80 0 0 1 180,100" fill="none" stroke="#38bdf8" strokeWidth="14" strokeLinecap="round"
+                    strokeDasharray="60.8 251.3" strokeDashoffset="-188.4"
+                    opacity={ritmoGauge.activeZone === 4 ? 1 : 0.15}
+                    style={{ filter: ritmoGauge.activeZone === 4 ? "drop-shadow(0 0 8px rgba(56,189,248,0.7))" : "none", transition: "opacity 0.5s" }}
+                  />
+                  {/* Needle */}
+                  <line x1="100" y1="100" x2="100" y2="30"
+                    stroke="#ffffff" strokeWidth="3.5" strokeLinecap="round"
+                    style={{
+                      transformOrigin: "100px 100px",
+                      transform: `rotate(${ritmoGauge.needleAngle}deg)`,
+                      transition: "transform 1.2s cubic-bezier(0.34,1.56,0.64,1)",
+                      filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7))",
+                    }}
+                  />
+                  <circle cx="100" cy="100" r="7" fill="#111" stroke="#fff" strokeWidth="2.5"
+                    style={{ filter: "drop-shadow(0 0 5px rgba(255,255,255,0.5))" }}
+                  />
+                  {/* Zone labels */}
+                  <text x="14" y="118" textAnchor="middle" fontSize="8" fontWeight="700" fill={ritmoGauge.activeZone === 1 ? "#f43f5e" : "rgba(255,255,255,0.3)"}>Baixo</text>
+                  <text x="57" y="108" textAnchor="middle" fontSize="8" fontWeight="700" fill={ritmoGauge.activeZone === 2 ? "#facc15" : "rgba(255,255,255,0.3)"}>Normal</text>
+                  <text x="143" y="108" textAnchor="middle" fontSize="8" fontWeight="700" fill={ritmoGauge.activeZone === 3 ? "#34d399" : "rgba(255,255,255,0.3)"}>Bom</text>
+                  <text x="186" y="118" textAnchor="middle" fontSize="8" fontWeight="700" fill={ritmoGauge.activeZone === 4 ? "#38bdf8" : "rgba(255,255,255,0.3)"}>Ótimo</text>
                 </svg>
                 <div
                   style={{
-                    fontSize: 26,
+                    fontSize: 24,
                     fontWeight: 900,
-                    marginTop: -8,
+                    marginTop: 4,
                     background:
-                      ritmoGauge.status === "Abaixo"
-                        ? "linear-gradient(135deg, #f87171, #ef4444)"
-                        : ritmoGauge.status === "No ritmo"
-                        ? "linear-gradient(135deg, #fbbf24, #f97316)"
-                        : "linear-gradient(135deg, #14b8a6, #06b6d4)",
+                      ritmoGauge.activeZone === 1
+                        ? "linear-gradient(135deg, #f43f5e, #ef4444)"
+                        : ritmoGauge.activeZone === 2
+                        ? "linear-gradient(135deg, #facc15, #f97316)"
+                        : ritmoGauge.activeZone === 3
+                        ? "linear-gradient(135deg, #34d399, #14b8a6)"
+                        : "linear-gradient(135deg, #38bdf8, #0ea5e9)",
                     WebkitBackgroundClip: "text",
                     backgroundClip: "text",
                     WebkitTextFillColor: "transparent",
