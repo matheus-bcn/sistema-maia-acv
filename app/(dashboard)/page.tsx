@@ -155,6 +155,40 @@ export default function Home() {
     };
   }, [totalFaturado, qtdVendas]);
 
+  const ritmoGauge = useMemo(() => {
+    if (!metaGlobal) return { status: "—", diff: 0, fillFraction: 0 };
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dataInicio = new Date(`${periodo.inicio}T00:00:00`);
+    const dataFim = new Date(`${periodo.fim}T00:00:00`);
+
+    const countBiz = (s: Date, e: Date) => {
+      let count = 0;
+      const cur = new Date(s);
+      while (cur <= e) {
+        const d = cur.getDay();
+        if (d !== 0 && d !== 6) count++;
+        cur.setDate(cur.getDate() + 1);
+      }
+      return count;
+    };
+
+    const totalBiz = Math.max(1, countBiz(dataInicio, dataFim));
+    const limite = hoje <= dataFim ? hoje : dataFim;
+    const passedBiz = limite >= dataInicio ? countBiz(dataInicio, limite) : 0;
+
+    const expectedVol = metaGlobal * (passedBiz / totalBiz);
+    const pacing = expectedVol > 0 ? (totalFaturado / expectedVol) * 100 : 0;
+    const diff = pacing - 100;
+
+    let status = "Abaixo";
+    if (pacing >= 105) status = "Acima";
+    else if (pacing >= 90) status = "No ritmo";
+
+    return { status, diff, fillFraction: Math.min(Math.max(pacing / 150, 0), 1) };
+  }, [metaGlobal, totalFaturado, periodo]);
+
   const maiaUpdatedAt = useMemo(() => {
     if (!maiaTimestamp) return "—";
     const mins = Math.floor((Date.now() - maiaTimestamp) / 60000);
@@ -170,7 +204,6 @@ export default function Home() {
 
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
-  const comercialOffset = circumference - (canais.pctComercial / 100) * circumference;
 
   const chartMax = useMemo(() => {
     if (!chartDiario.length) return 1;
@@ -1278,8 +1311,102 @@ export default function Home() {
 
             {/* ─── Ranking + Intelligence + IA Predictor ─── */}
             <div
-              style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}
+              style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}
             >
+              {/* Ritmo da Meta gauge */}
+              <div
+                style={{
+                  borderRadius: 18,
+                  padding: 20,
+                  background: "rgba(255,255,255,0.03)",
+                  backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "1.5px",
+                    color: "rgba(255,255,255,0.4)",
+                    alignSelf: "flex-start",
+                    marginBottom: 6,
+                  }}
+                >
+                  Ritmo da Meta
+                </span>
+                <svg viewBox="0 0 200 120" style={{ width: 170, height: 102 }}>
+                  <defs>
+                    <linearGradient id="ritmoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop
+                        offset="0%"
+                        stopColor={
+                          ritmoGauge.status === "Abaixo"
+                            ? "#f87171"
+                            : ritmoGauge.status === "No ritmo"
+                            ? "#fbbf24"
+                            : "#14b8a6"
+                        }
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor={
+                          ritmoGauge.status === "Abaixo"
+                            ? "#ef4444"
+                            : ritmoGauge.status === "No ritmo"
+                            ? "#f97316"
+                            : "#06b6d4"
+                        }
+                      />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M20,100 A80,80 0 0 1 180,100"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="14"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M20,100 A80,80 0 0 1 180,100"
+                    fill="none"
+                    stroke="url(#ritmoGrad)"
+                    strokeWidth="14"
+                    strokeLinecap="round"
+                    strokeDasharray="251.3"
+                    strokeDashoffset={251.3 * (1 - ritmoGauge.fillFraction)}
+                    style={{ transition: "stroke-dashoffset 1s ease" }}
+                  />
+                </svg>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    marginTop: -8,
+                    background:
+                      ritmoGauge.status === "Abaixo"
+                        ? "linear-gradient(135deg, #f87171, #ef4444)"
+                        : ritmoGauge.status === "No ritmo"
+                        ? "linear-gradient(135deg, #fbbf24, #f97316)"
+                        : "linear-gradient(135deg, #14b8a6, #06b6d4)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  {ritmoGauge.status}
+                </div>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+                  {ritmoGauge.diff >= 0 ? "+" : ""}
+                  {ritmoGauge.diff.toFixed(0)}% vs necessário
+                </span>
+              </div>
+
               {/* Ranking */}
               <div
                 style={{
@@ -1762,35 +1889,33 @@ export default function Home() {
               >
                 <div style={{ position: "relative", width: 168, height: 168, flexShrink: 0 }}>
                   <svg
-                    viewBox="0 0 100 100"
+                    viewBox="0 0 120 120"
                     style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}
                   >
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="transparent"
-                      stroke="rgba(99,102,241,0.15)"
-                      strokeWidth="11"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="transparent"
-                      stroke="url(#tealGradDB)"
-                      strokeWidth="11"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={comercialOffset}
-                      strokeLinecap="round"
-                      style={{ transition: "stroke-dashoffset 1s ease" }}
-                    />
                     <defs>
                       <linearGradient id="tealGradDB" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#14b8a6" />
                         <stop offset="100%" stopColor="#06b6d4" />
                       </linearGradient>
                     </defs>
+                    {/* Track */}
+                    <circle cx="60" cy="60" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="13" />
+                    {/* Comercial arc (teal) */}
+                    <circle
+                      cx="60" cy="60" r={radius} fill="none"
+                      stroke="url(#tealGradDB)" strokeWidth="13" strokeLinecap="round"
+                      strokeDasharray={`${Math.max(0, (canais.pctComercial / 100) * circumference - 4)} ${circumference}`}
+                      strokeDashoffset={0}
+                      style={{ transition: "stroke-dasharray 1s ease" }}
+                    />
+                    {/* Atendimento arc (indigo) */}
+                    <circle
+                      cx="60" cy="60" r={radius} fill="none"
+                      stroke="#6366f1" strokeWidth="13" strokeLinecap="round"
+                      strokeDasharray={`${Math.max(0, (canais.pctAtendimento / 100) * circumference - 4)} ${circumference}`}
+                      strokeDashoffset={-((canais.pctComercial / 100) * circumference)}
+                      style={{ transition: "stroke-dasharray 1s ease" }}
+                    />
                   </svg>
                   <div
                     style={{
