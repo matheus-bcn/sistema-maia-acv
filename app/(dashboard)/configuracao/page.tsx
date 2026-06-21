@@ -282,36 +282,23 @@ export default function ConfiguracaoPage() {
   return (
     <div>
       {/* Header */}
-      <header className="mb-8 flex items-center gap-4">
+      <header style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 13 }}>
         <div
           style={{
-            width: 46,
-            height: 46,
-            borderRadius: 14,
+            width: 46, height: 46, borderRadius: 14,
             background: "linear-gradient(135deg, rgba(251,113,133,0.22), rgba(236,72,153,0.12))",
             border: "1px solid rgba(251,113,133,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fb7185", flexShrink: 0,
           }}
         >
-          <Icon icon="line-md:cog-loop" style={{ color: "#fb7185", fontSize: 22 }} />
+          <Icon icon="line-md:cog-loop" style={{ fontSize: 24 }} />
         </div>
         <div>
-          <h1
-            style={{
-              fontSize: 30,
-              fontWeight: 800,
-              letterSpacing: "-0.8px",
-              color: "#fff",
-              lineHeight: 1.1,
-              margin: 0,
-            }}
-          >
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.8px", color: "#fff" }}>
             Configuração
           </h1>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", margin: 0, marginTop: 2 }}>
+          <p style={{ margin: "3px 0 0", fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
             Preferências do sistema, metas e integrações
           </p>
         </div>
