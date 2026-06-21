@@ -1678,13 +1678,11 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* IA Predictor */}
+              {/* Projeção de Fechamento */}
               <div
                 style={{
                   borderRadius: 18,
                   padding: 22,
-                  position: "relative",
-                  overflow: "hidden",
                   background: "rgba(255,255,255,0.03)",
                   backdropFilter: "blur(20px)",
                   border: "1px solid rgba(255,255,255,0.07)",
@@ -1694,98 +1692,86 @@ export default function Home() {
                   justifyContent: "space-between",
                 }}
               >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 18,
-                    right: -34,
-                    transform: "rotate(45deg)",
-                    background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
-                    padding: "4px 44px",
-                    fontSize: 9,
-                    fontWeight: 800,
-                    letterSpacing: "1px",
-                    textTransform: "uppercase",
-                    color: "#fff",
-                    boxShadow: "0 4px 14px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  IA Predictor
-                </div>
-                <div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      color: "rgba(255,255,255,0.45)",
+                    }}
                   >
-                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#fff" }}>Status da Meta</h3>
+                    Projeção de Fechamento
+                  </p>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: "rgba(99,102,241,0.15)",
+                      border: "1px solid rgba(99,102,241,0.3)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Icon icon="mdi:lightning-bolt" style={{ fontSize: 18, color: "#818cf8" }} />
                   </div>
-                  <p style={{ margin: 0, fontSize: 40, fontWeight: 800, letterSpacing: "-1.5px", color: "#fff" }}>
-                    {metaPct.toFixed(1)}%
+                </div>
+
+                <div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 36,
+                      fontWeight: 800,
+                      letterSpacing: "-1px",
+                      color: "#60a5fa",
+                      lineHeight: 1,
+                    }}
+                  >
+                    R$ {projecao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
                   </p>
                   <p
                     style={{
-                      margin: "2px 0 0",
+                      margin: "8px 0 0",
                       fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.5px",
-                      textTransform: "uppercase",
-                      color: "rgba(255,255,255,0.4)",
+                      fontWeight: 500,
+                      color: "rgba(255,255,255,0.35)",
                     }}
                   >
-                    Realizado até hoje
+                    Tendência da IA p/ fim do mês
                   </p>
                 </div>
-                <div style={{ marginTop: 20 }}>
-                  <div
+
+                <div
+                  style={{
+                    marginTop: 20,
+                    borderTop: "1px solid rgba(255,255,255,0.07)",
+                    paddingTop: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Icon
+                    icon={projecao >= metaGlobal ? "mdi:check-circle" : "mdi:alert-circle"}
+                    style={{ fontSize: 16, color: projecao >= metaGlobal ? "#4ade80" : "#fb923c", flexShrink: 0 }}
+                  />
+                  <p
                     style={{
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      marginBottom: 16,
+                      margin: 0,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: projecao >= metaGlobal ? "#4ade80" : "#fb923c",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <Icon icon="mdi:lightning-bolt" style={{ fontSize: 15, color: "#fbbf24" }} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
-                        Tendência de fechamento
-                      </span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#fff" }}>
-                      R$ {projecao.toLocaleString("pt-BR")}
-                    </p>
-                    <p
-                      style={{
-                        margin: "4px 0 0",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: projecao >= metaGlobal ? "#4ade80" : "#f87171",
-                      }}
-                    >
-                      {projecao >= metaGlobal
-                        ? "✅ No ritmo para bater a meta"
-                        : "⚠ Tendência levemente abaixo da meta"}
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      height: 11,
-                      width: "100%",
-                      borderRadius: 999,
-                      background: "rgba(255,255,255,0.08)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${Math.min(100, metaPct)}%`,
-                        borderRadius: 999,
-                        background: "#fff",
-                        boxShadow: "0 0 15px rgba(255,255,255,0.4)",
-                        transition: "width 0.4s ease",
-                      }}
-                    />
-                  </div>
+                    {projecao >= metaGlobal
+                      ? "No ritmo para bater a meta"
+                      : "Projeção abaixo do esperado"}
+                  </p>
                 </div>
               </div>
             </div>
