@@ -209,36 +209,23 @@ export default function CalendarioPage() {
   return (
     <>
       {/* Header */}
-      <header className="mb-8 flex items-center gap-4">
+      <header style={{ marginBottom: 22, display: "flex", alignItems: "center", gap: 13 }}>
         <div
           style={{
-            width: 46,
-            height: 46,
-            borderRadius: 14,
+            width: 46, height: 46, borderRadius: 14,
             background: "linear-gradient(135deg, rgba(20,184,166,0.25), rgba(6,182,212,0.15))",
             border: "1px solid rgba(20,184,166,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#2dd4bf", flexShrink: 0,
           }}
         >
-          <Icon icon="line-md:calendar" width={22} height={22} color="#2dd4bf" />
+          <Icon icon="line-md:calendar" style={{ fontSize: 24 }} />
         </div>
         <div>
-          <h1
-            style={{
-              fontSize: 30,
-              fontWeight: 900,
-              letterSpacing: "-0.8px",
-              lineHeight: 1.1,
-              color: "#fff",
-              margin: 0,
-            }}
-          >
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.8px", color: "#fff" }}>
             Calendário · Agenda
           </h1>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", margin: 0 }}>
+          <p style={{ margin: "3px 0 0", fontSize: 13, color: "rgba(255,255,255,0.4)" }}>
             Visitas, metas e compromissos da equipe
           </p>
         </div>
@@ -250,7 +237,7 @@ export default function CalendarioPage() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: 14,
-          marginBottom: 24,
+          marginBottom: 18,
         }}
       >
         {statCards.map((card) => (
@@ -260,11 +247,12 @@ export default function CalendarioPage() {
               borderRadius: 16,
               padding: 18,
               background: "rgba(255,255,255,0.03)",
+              backdropFilter: "blur(20px)",
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <Icon icon={card.icon} width={16} height={16} color={card.color} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <Icon icon={card.icon} style={{ fontSize: 16, color: card.color }} />
               <span
                 style={{
                   fontSize: 10,
@@ -792,42 +780,34 @@ export default function CalendarioPage() {
             >
               <div
                 style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 2,
-                  background: "linear-gradient(90deg, rgba(20,184,166,0.8), rgba(6,182,212,0.4), transparent)",
+                  position: "absolute", top: 0, left: 0, right: 0, height: 2,
+                  background: "linear-gradient(to right, #14b8a6, #06b6d4, #14b8a6)",
                 }}
               />
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                <Icon icon="mdi:brain" width={18} height={18} color="#2dd4bf" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#2dd4bf" }}>M.A.I.A sugere</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <div
+                  style={{
+                    width: 34, height: 34, borderRadius: 10,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "rgba(20,184,166,0.1)",
+                    border: "1px solid rgba(20,184,166,0.25)",
+                    color: "#2dd4bf",
+                  }}
+                >
+                  <Icon icon="mdi:brain" style={{ fontSize: 18 }} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase", color: "#fff" }}>
+                  M.A.I.A sugere
+                </h3>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div
-                  style={{
-                    background: "rgba(20,184,166,0.07)",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    border: "1px solid rgba(20,184,166,0.12)",
-                  }}
-                >
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", margin: 0, lineHeight: 1.5 }}>
-                    Agende visitas de retenção nos dias sem compromissos da semana para maximizar contatos em {MESES[month - 1]}.
-                  </p>
+                <div style={{ fontSize: 12.5, lineHeight: 1.45, color: "rgba(255,255,255,0.7)" }}>
+                  <span style={{ color: "#fb923c", fontWeight: 800 }}>Atenção: </span>
+                  Agende visitas de retenção nos dias sem compromissos da semana para maximizar contatos em {MESES[month - 1]}.
                 </div>
-                <div
-                  style={{
-                    background: "rgba(20,184,166,0.07)",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                    border: "1px solid rgba(20,184,166,0.12)",
-                  }}
-                >
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", margin: 0, lineHeight: 1.5 }}>
-                    Concentre metas de fechamento na primeira quinzena para garantir folga no final do mês.
-                  </p>
+                <div style={{ fontSize: 12.5, lineHeight: 1.45, color: "rgba(255,255,255,0.7)" }}>
+                  <span style={{ color: "#2dd4bf", fontWeight: 800 }}>Sugestão: </span>
+                  Concentre metas de fechamento na primeira quinzena para garantir folga no final do mês.
                 </div>
               </div>
             </div>
