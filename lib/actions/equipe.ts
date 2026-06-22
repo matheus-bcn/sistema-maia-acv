@@ -9,13 +9,8 @@ async function requireAdmin(): Promise<{ userId: string } | { error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: usuário não autenticado." };
 
-  const masterEmail = (
-    process.env.MASTER_ADMIN_EMAIL ||
-    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
-    "admin@onlinegrafica.com"
-  ).toLowerCase();
-
-  if (user.email?.toLowerCase() === masterEmail) return { userId: user.id };
+  const masterEmail = process.env.MASTER_ADMIN_EMAIL?.toLowerCase();
+  if (masterEmail && user.email?.toLowerCase() === masterEmail) return { userId: user.id };
 
   const { data } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
   if (!data?.is_admin) return { error: "Acesso negado: apenas administradores." };
@@ -83,7 +78,7 @@ export async function criarVendedorComLoginAction(
 }
 
 // 2. DELETAR LOGIN E OCULTAR VENDEDOR
-export async function deletarVendedorAction(id: string, email: string) {
+export async function deletarVendedorAction(id: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { success: false, error: auth.error };
 
@@ -100,13 +95,14 @@ export async function deletarVendedorAction(id: string, email: string) {
 
     if (dbError) throw new Error("Erro ao desativar vendedor: " + dbError.message);
 
-    const { data: { users }, error: authListError } = await supabaseAdmin.auth.admin.listUsers();
-    if (authListError) throw new Error("Erro ao buscar usuários: " + authListError.message);
-
-    const userToDelete = users.find(u => u.email === email);
-    if (userToDelete) {
-      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userToDelete.id);
-      if (deleteError) throw new Error("Erro ao remover login: " + deleteError.message);
+    // Usar o ID diretamente — evita carregar todos os usuários do sistema
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(id);
+    } catch (authError: unknown) {
+      const msg = authError instanceof Error ? authError.message : String(authError);
+      if (!msg.toLowerCase().includes("not found")) {
+        throw new Error("Erro ao remover login: " + msg);
+      }
     }
 
     revalidatePath("/equipe");

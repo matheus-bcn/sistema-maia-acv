@@ -39,6 +39,11 @@ export async function deleteCalendarEventAction(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
+  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!sellerData?.is_admin) {
+    return { error: "Acesso negado: apenas administradores podem excluir eventos do calendário." };
+  }
+
   const { error } = await supabase.from("calendar_events").delete().eq("id", id);
 
   if (!error) revalidatePath("/dashboard", "layout");

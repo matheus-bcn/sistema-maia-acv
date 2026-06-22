@@ -35,6 +35,16 @@ export async function deleteSaleAction(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
+  const { data: sale } = await supabase.from("sales").select("seller_id").eq("id", id).maybeSingle();
+  if (!sale) return { error: "Venda não encontrada." };
+
+  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  const isAdmin = sellerData?.is_admin ?? false;
+
+  if (sale.seller_id !== user.id && !isAdmin) {
+    return { error: "Acesso negado: você não pode excluir vendas de outro vendedor." };
+  }
+
   const { error } = await supabase.from("sales").delete().eq("id", id);
   if (error) return { error: error.message };
 
@@ -50,6 +60,11 @@ export async function deleteAllSalesAction(startDate: string, endDate: string) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
+
+  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!sellerData?.is_admin) {
+    return { error: "Acesso negado: apenas administradores podem excluir vendas em massa." };
+  }
 
   const { error } = await supabase
     .from("sales")

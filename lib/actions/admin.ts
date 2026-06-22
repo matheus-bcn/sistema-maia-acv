@@ -9,11 +9,14 @@ export async function updateMonthlyGoalAction(amount: number) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
+
+  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!sellerData?.is_admin) return { error: "Acesso negado: apenas administradores podem alterar a meta." };
+
   if (amount <= 0) return { error: "A meta deve ser maior que zero." };
 
-  // Deleta a meta de equipe atual e insere a nova (para evitar acúmulo no DB)
   await supabase.from("goals").delete().eq("type", "equipe");
-  
+
   const { error } = await supabase
     .from("goals")
     .insert({ type: "equipe", target_value: amount });
@@ -32,9 +35,15 @@ export async function createAwardAction(title: string, requiredAmount: number, d
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado." };
 
+  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!sellerData?.is_admin) return { error: "Acesso negado: apenas administradores podem criar premiações." };
+
+  if (!title.trim()) return { error: "Título é obrigatório." };
+  if (requiredAmount <= 0) return { error: "O valor requerido deve ser positivo." };
+
   const { error } = await supabase
     .from("awards")
-    .insert({ title, required_amount: requiredAmount, description });
+    .insert({ title: title.trim(), required_amount: requiredAmount, description: description.trim() });
 
   if (error) return { error: error.message };
 

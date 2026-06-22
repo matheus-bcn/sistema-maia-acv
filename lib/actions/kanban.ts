@@ -15,12 +15,24 @@ async function checkIsAdmin(supabase: Awaited<ReturnType<typeof createClient>>, 
   // Prefer server-only env var; fall back to NEXT_PUBLIC for backwards compatibility
   const masterEmail = (
     process.env.MASTER_ADMIN_EMAIL ||
-    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL ||
-    "admin@onlinegrafica.com"
-  ).toLowerCase();
-  if (email && email.toLowerCase() === masterEmail) return true;
+    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL
+  )?.toLowerCase();
+  if (masterEmail && email && email.toLowerCase() === masterEmail) return true;
   const { data } = await supabase.from("sellers").select("is_admin").eq("id", userId).maybeSingle();
   return !!(data?.is_admin);
+}
+
+// Returns true if userId owns the resource OR if the resource belongs to an admin board (team board)
+async function canModifyBoardResource(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  resourceOwnerId: string
+): Promise<boolean> {
+  if (userId === resourceOwnerId) return true;
+  if (await checkIsAdmin(supabase, userId)) return true;
+  // Allow modification if the resource is on the team/admin board
+  if (await checkIsAdmin(supabase, resourceOwnerId)) return true;
+  return false;
 }
 
 // ── PAINEL GERAL ─────────────────────────────────────────────
@@ -117,6 +129,10 @@ export async function editarListaAction(listId: string, title: string, color = "
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
 
+  const { data: list } = await supabase.from("kanban_lists").select("seller_id").eq("id", listId).maybeSingle();
+  if (!list) return { error: "Lista não encontrada." };
+  if (!await canModifyBoardResource(supabase, userId, list.seller_id)) return { error: "Acesso negado." };
+
   const { error } = await supabase
     .from("kanban_lists")
     .update({ title: title.trim(), color })
@@ -131,6 +147,10 @@ export async function excluirListaAction(listId: string) {
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
+
+  const { data: list } = await supabase.from("kanban_lists").select("seller_id").eq("id", listId).maybeSingle();
+  if (!list) return { error: "Lista não encontrada." };
+  if (!await canModifyBoardResource(supabase, userId, list.seller_id)) return { error: "Acesso negado." };
 
   const { error } = await supabase.from("kanban_lists").delete().eq("id", listId);
   if (error) return { error: error.message };
@@ -228,6 +248,10 @@ export async function editarCartaoAction(
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
 
+  const { data: card } = await supabase.from("kanban_cards").select("seller_id").eq("id", cardId).maybeSingle();
+  if (!card) return { error: "Cartão não encontrado." };
+  if (!await canModifyBoardResource(supabase, userId, card.seller_id)) return { error: "Acesso negado." };
+
   const { error } = await supabase
     .from("kanban_cards")
     .update({
@@ -276,6 +300,10 @@ export async function excluirCartaoAction(cardId: string) {
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
+
+  const { data: card } = await supabase.from("kanban_cards").select("seller_id").eq("id", cardId).maybeSingle();
+  if (!card) return { error: "Cartão não encontrado." };
+  if (!await canModifyBoardResource(supabase, userId, card.seller_id)) return { error: "Acesso negado." };
 
   const { error } = await supabase.from("kanban_cards").delete().eq("id", cardId);
   if (error) return { error: error.message };
@@ -379,6 +407,18 @@ export async function excluirComentarioAction(commentId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado." };
+
+  const { data: comment } = await supabase
+    .from("kanban_card_comments")
+    .select("author_id")
+    .eq("id", commentId)
+    .maybeSingle();
+  if (!comment) return { error: "Comentário não encontrado." };
+
+  const isAdmin = await checkIsAdmin(supabase, user.id);
+  if (comment.author_id !== user.id && !isAdmin) {
+    return { error: "Acesso negado: você só pode excluir seus próprios comentários." };
+  }
 
   const { error } = await supabase
     .from("kanban_card_comments")

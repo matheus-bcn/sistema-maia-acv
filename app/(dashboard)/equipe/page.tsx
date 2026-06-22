@@ -94,7 +94,7 @@ export default function EquipePage() {
     setError(null);
     
     try {
-      const res = await deletarVendedorAction(deleteModal.seller.id, deleteModal.seller.email);
+      const res = await deletarVendedorAction(deleteModal.seller.id);
       if (res.success) {
         setDeleteModal({ open: false, seller: null }); // Fecha o modal após o sucesso
         load(); // Atualiza a lista
