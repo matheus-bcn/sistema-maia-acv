@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
+import { isMasterAdminEmail } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ADMIN_PRIMARY = [
@@ -45,8 +46,7 @@ export function BottomNav() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      const masterAdmin = (process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com").toLowerCase();
-      if (user.email?.toLowerCase() === masterAdmin) { setIsAdmin(true); return; }
+      if (isMasterAdminEmail(user.email)) { setIsAdmin(true); return; }
       supabase.from("sellers").select("is_admin").eq("email", user.email).maybeSingle()
         .then(({ data }) => setIsAdmin(!!data?.is_admin));
     });

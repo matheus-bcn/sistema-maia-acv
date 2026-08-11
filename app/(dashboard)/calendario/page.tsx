@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { getDailySalesForMonth } from "@/lib/data/sales";
 import { getTeamGoal } from "@/lib/data/goals";
 import { listCalendarEvents } from "@/lib/data/calendar";
+import { createCalendarEventAction, deleteCalendarEventAction } from "@/lib/actions/calendar";
+import { isMasterAdminEmail } from "@/lib/auth";
+import type { CalendarEvent } from "@/types";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -23,9 +26,15 @@ function startOfToday(): Date {
 
 function getEventColor(tipo?: string): string {
   if (tipo === "reuniao") return "#a78bfa";
-  if (tipo === "treinamento") return "#facc15";
-  if (tipo === "meta") return "#fb923c";
+  if (tipo === "campanha") return "#facc15";
+  if (tipo === "fechamento") return "#fb923c";
   return "#60a5fa";
+}
+
+const TIPO_LABELS: Record<string, string> = { reuniao: "Reunião", campanha: "Campanha", fechamento: "Fechamento" };
+
+function eventDay(ev: { event_date: string }): number {
+  return Number(ev.event_date.slice(8, 10));
 }
 
 export default function CalendarioPage() {
@@ -37,7 +46,7 @@ export default function CalendarioPage() {
 
   const [dailyMap, setDailyMap] = useState<Map<number, number>>(new Map());
   const [metaDiaria, setMetaDiaria] = useState(0);
-  const [eventos, setEventos] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<CalendarEvent[]>([]);
   const [vendasRaw, setVendasRaw] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -45,8 +54,9 @@ export default function CalendarioPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [showEventForm, setShowEventForm] = useState(false);
-  const [novoEvento, setNovoEvento] = useState<{ dia: string; titulo: string; tipo: "reuniao" | "treinamento" | "meta" }>({ dia: "", titulo: "", tipo: "reuniao" });
+  const [novoEvento, setNovoEvento] = useState<{ dia: string; titulo: string; tipo: "reuniao" | "campanha" | "fechamento" }>({ dia: "", titulo: "", tipo: "reuniao" });
   const [savingEvent, setSavingEvent] = useState(false);
+  const [eventError, setEventError] = useState<string | null>(null);
 
   const [diaSelecionado, setDiaSelecionado] = useState<number | null>(null);
 
@@ -57,13 +67,12 @@ export default function CalendarioPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
-        const isMasterAdmin = user.email === "admin@onlinegrafica.com";
         const { data: seller } = await supabase
           .from("sellers")
           .select("is_admin")
           .eq("email", user.email)
           .maybeSingle();
-        setIsAdmin(!!seller?.is_admin || isMasterAdmin);
+        setIsAdmin(!!seller?.is_admin || isMasterAdminEmail(user.email));
       }
 
       const [daily, meta, ev] = await Promise.all([
@@ -101,19 +110,24 @@ export default function CalendarioPage() {
     if (!isAdmin) return;
 
     setSavingEvent(true);
+    setEventError(null);
     try {
-      const novoEv = {
-        id: Date.now().toString(),
-        event_day: Number(novoEvento.dia),
+      const result = await createCalendarEventAction({
         title: novoEvento.titulo,
-        type: novoEvento.tipo,
-      };
-      setEventos([...eventos, novoEv]);
+        event_type: novoEvento.tipo,
+        event_day: Number(novoEvento.dia),
+        month,
+        year,
+      });
+      if (result.error) throw new Error(result.error);
+
+      const atualizados = await listCalendarEvents(supabase, month, year);
+      setEventos(atualizados);
       setShowEventForm(false);
       setNovoEvento({ dia: "", titulo: "", tipo: "reuniao" });
     } catch (err) {
       console.error(err);
-      alert("Erro ao criar evento.");
+      setEventError(err instanceof Error ? err.message : "Erro ao criar evento.");
     } finally {
       setSavingEvent(false);
     }
@@ -121,11 +135,13 @@ export default function CalendarioPage() {
 
   const removerEvento = async (id: string) => {
     if (!isAdmin) return;
-    setEventos(eventos.filter((e) => e.id !== id));
     try {
-      // await supabase.from('calendar_events').delete().eq('id', id);
+      const result = await deleteCalendarEventAction(id);
+      if (result.error) throw new Error(result.error);
+      setEventos(eventos.filter((e) => e.id !== id));
     } catch (err) {
       console.error("Erro ao excluir o evento:", err);
+      setEventError(err instanceof Error ? err.message : "Erro ao excluir evento.");
     }
   };
 
@@ -177,14 +193,14 @@ export default function CalendarioPage() {
   const isCurrentMonth = today.getMonth() + 1 === month && today.getFullYear() === year;
   const todayDay = today.getDate();
 
-  const statHoje = eventos.filter((e) => e.event_day === todayDay && isCurrentMonth).length;
+  const statHoje = eventos.filter((e) => eventDay(e) === todayDay && isCurrentMonth).length;
 
   const statVisitasSemana = useMemo(() => {
     const now = new Date();
     const sevenDaysLater = new Date(now);
     sevenDaysLater.setDate(now.getDate() + 7);
     return eventos.filter((e) => {
-      const evDate = new Date(year, month - 1, e.event_day);
+      const evDate = new Date(year, month - 1, eventDay(e));
       return evDate >= now && evDate <= sevenDaysLater;
     }).length;
   }, [eventos, month, year]);
@@ -195,8 +211,8 @@ export default function CalendarioPage() {
   const compromissosFuturos = useMemo(() => {
     const now = isCurrentMonth ? todayDay : 1;
     return eventos
-      .filter((e) => e.event_day >= now)
-      .sort((a, b) => a.event_day - b.event_day);
+      .filter((e) => eventDay(e) >= now)
+      .sort((a, b) => eventDay(a) - eventDay(b));
   }, [eventos, isCurrentMonth, todayDay]);
 
   const statCards = [
@@ -449,7 +465,7 @@ export default function CalendarioPage() {
                 ))}
 
                 {dias.map((d) => {
-                  const eventosDoDia = eventos.filter((e) => e.event_day === d.dia);
+                  const eventosDoDia = eventos.filter((e) => eventDay(e) === d.dia);
                   const isToday = isCurrentMonth && d.dia === todayDay;
 
                   return (
@@ -501,7 +517,7 @@ export default function CalendarioPage() {
                       {eventosDoDia.length > 0 && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                           {eventosDoDia.slice(0, 3).map((ev) => {
-                            const color = getEventColor(ev.type);
+                            const color = getEventColor(ev.event_type);
                             return (
                               <div
                                 key={ev.id}
@@ -641,10 +657,9 @@ export default function CalendarioPage() {
                         }}
                       />
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-                        {(["reuniao", "treinamento", "meta"] as const).map((tipo) => {
-                          const labels: Record<string, string> = { reuniao: "Reunião", treinamento: "Treino", meta: "Meta" };
-                          const colors: Record<string, string> = { reuniao: "#a78bfa", treinamento: "#facc15", meta: "#fb923c" };
+                        {(["reuniao", "campanha", "fechamento"] as const).map((tipo) => {
                           const active = novoEvento.tipo === tipo;
+                          const color = getEventColor(tipo);
                           return (
                             <button
                               key={tipo}
@@ -655,17 +670,20 @@ export default function CalendarioPage() {
                                 borderRadius: 6,
                                 fontSize: 10,
                                 fontWeight: 700,
-                                border: `1px solid ${active ? colors[tipo] : "rgba(255,255,255,0.1)"}`,
-                                background: active ? `${colors[tipo]}22` : "transparent",
-                                color: active ? colors[tipo] : "rgba(255,255,255,0.4)",
+                                border: `1px solid ${active ? color : "rgba(255,255,255,0.1)"}`,
+                                background: active ? `${color}22` : "transparent",
+                                color: active ? color : "rgba(255,255,255,0.4)",
                                 cursor: "pointer",
                               }}
                             >
-                              {labels[tipo]}
+                              {TIPO_LABELS[tipo]}
                             </button>
                           );
                         })}
                       </div>
+                      {eventError && (
+                        <p style={{ fontSize: 11, color: "#f87171", margin: 0 }}>{eventError}</p>
+                      )}
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           type="button"
@@ -722,7 +740,7 @@ export default function CalendarioPage() {
                   </p>
                 ) : (
                   compromissosFuturos.map((ev) => {
-                    const color = getEventColor(ev.type);
+                    const color = getEventColor(ev.event_type);
                     const mesLabel = MESES[month - 1].slice(0, 3).toUpperCase();
                     return (
                       <div
@@ -744,7 +762,7 @@ export default function CalendarioPage() {
                           }}
                         >
                           <span style={{ fontSize: 16, fontWeight: 800, color, lineHeight: 1 }}>
-                            {ev.event_day}
+                            {eventDay(ev)}
                           </span>
                           <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: `${color}99`, letterSpacing: "0.5px" }}>
                             {mesLabel}
@@ -754,11 +772,6 @@ export default function CalendarioPage() {
                           <p style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {ev.title}
                           </p>
-                          {(ev.event_time || ev.responsible) && (
-                            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: "2px 0 0" }}>
-                              {[ev.event_time, ev.responsible].filter(Boolean).join(" · ")}
-                            </p>
-                          )}
                         </div>
                       </div>
                     );
@@ -985,11 +998,11 @@ export default function CalendarioPage() {
                   Agenda / Eventos
                 </h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {eventos.filter((e) => e.event_day === diaSelecionado).length > 0 ? (
+                  {eventos.filter((e) => eventDay(e) === diaSelecionado).length > 0 ? (
                     eventos
-                      .filter((e) => e.event_day === diaSelecionado)
+                      .filter((e) => eventDay(e) === diaSelecionado)
                       .map((ev) => {
-                        const color = getEventColor(ev.type);
+                        const color = getEventColor(ev.event_type);
                         return (
                           <div
                             key={ev.id}
@@ -1018,7 +1031,7 @@ export default function CalendarioPage() {
                                   marginBottom: 4,
                                 }}
                               >
-                                Dia {ev.event_day}
+                                Dia {eventDay(ev)}
                               </span>
                               <p style={{ fontSize: 13, fontWeight: 500, color: "#fff", margin: 0 }}>{ev.title}</p>
                             </div>

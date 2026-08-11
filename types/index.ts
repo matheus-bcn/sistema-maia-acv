@@ -27,22 +27,12 @@ export interface Sale {
   seller?: Seller | null;
 }
 
-export interface Goal {
-  id: string;
-  type: "equipe" | "individual";
-  target_value: number;
-  seller_id: string | null;
-  month_year: string | null;
-  created_at: string;
-}
-
 export interface CalendarEvent {
   id: string;
   title: string;
   event_type: "reuniao" | "campanha" | "fechamento";
-  event_day: number;
-  month: number;
-  year: number;
+  event_date: string;
+  created_at?: string;
 }
 
 export interface SellerRanking {
@@ -57,12 +47,6 @@ export interface DashboardStats {
   qtdVendas: number;
   metaGlobal: number;
   topSeller: SellerRanking | null;
-}
-
-export interface ChartPoint {
-  dia: string;
-  atual: number;
-  anterior: number;
 }
 
 export interface VendedorPerfil {

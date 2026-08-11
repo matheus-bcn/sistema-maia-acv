@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Goal } from "@/types";
 
 function currentMonthYear(): string {
   const d = new Date();
@@ -68,28 +67,4 @@ export async function upsertSellerGoal(
     : await supabase.from("goals").insert({ type: "individual", target_value: targetValue, seller_id: sellerId, month_year: monthYear });
 
   return { error: error?.message ?? null };
-}
-
-export async function upsertTeamGoal(supabase: SupabaseClient, targetValue: number): Promise<{ error: string | null }> {
-  const monthYear = currentMonthYear();
-  const { data: existing } = await supabase.from("goals").select("id").eq("type", "equipe").eq("month_year", monthYear).limit(1).maybeSingle();
-  const { error } = existing?.id
-    ? await supabase.from("goals").update({ target_value: targetValue }).eq("id", existing.id)
-    : await supabase.from("goals").insert({ type: "equipe", target_value: targetValue, seller_id: null, month_year: monthYear });
-  return { error: error?.message ?? null };
-}
-
-export async function upsertIndividualBaseGoal(supabase: SupabaseClient, targetValue: number): Promise<{ error: string | null }> {
-  const monthYear = currentMonthYear();
-  const { data: existing } = await supabase.from("goals").select("id").eq("type", "individual").is("seller_id", null).eq("month_year", monthYear).limit(1).maybeSingle();
-  const { error } = existing?.id
-    ? await supabase.from("goals").update({ target_value: targetValue }).eq("id", existing.id)
-    : await supabase.from("goals").insert({ type: "individual", target_value: targetValue, seller_id: null, month_year: monthYear });
-  return { error: error?.message ?? null };
-}
-
-export async function listRecentGoals(supabase: SupabaseClient): Promise<Goal[]> {
-  const { data, error } = await supabase.from("goals").select("*").order("created_at", { ascending: false }).limit(20);
-  if (error || !data) return [];
-  return data as Goal[];
 }

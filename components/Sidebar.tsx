@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { isMasterAdminEmail } from "@/lib/auth";
 
 const ROUTE_COLORS: Record<string, string> = {
   "/":           "text-orange-400",
@@ -39,17 +40,13 @@ export function Sidebar() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const userEmail = user.email?.toLowerCase();
-      const masterAdminEmail = (process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com").toLowerCase();
-
       const { data: seller } = await supabase
         .from("sellers")
         .select("is_admin")
-        .eq("email", userEmail)
+        .eq("email", user.email)
         .maybeSingle();
 
-      const isMasterAdmin = userEmail === masterAdminEmail;
-      setIsAdmin(!!(isMasterAdmin || seller?.is_admin));
+      setIsAdmin(isMasterAdminEmail(user.email) || !!seller?.is_admin);
 
       const { data: settings } = await supabase
         .from("company_settings")

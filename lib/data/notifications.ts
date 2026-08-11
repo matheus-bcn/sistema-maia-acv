@@ -32,15 +32,6 @@ export async function getNotifications(
   return (data ?? []) as Notification[];
 }
 
-export async function countUnread(supabase: SupabaseClient, sellerId: string): Promise<number> {
-  const { count } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("seller_id", sellerId)
-    .eq("is_read", false);
-  return count ?? 0;
-}
-
 export async function markAllAsRead(supabase: SupabaseClient, sellerId: string): Promise<void> {
   await supabase
     .from("notifications")

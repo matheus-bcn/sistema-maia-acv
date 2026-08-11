@@ -104,9 +104,7 @@ export default function RelatorioPage() {
         supabase,
         rankings,
         stats.totalFaturado,
-        stats.metaGlobal,
-        periodo.inicio,
-        periodo.fim
+        stats.metaGlobal
       );
       setInsights(ins);
 

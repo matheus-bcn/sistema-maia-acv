@@ -42,9 +42,3 @@ export function PeriodoFilter({ inicio, fim, onChange, className = "" }: Periodo
     </div>
   );
 }
-
-// Versão dropdown (para historico que usa o padrão de modal)
-export const DATE_INPUT_CLASS =
-  "w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none transition-all cursor-pointer " +
-  "[color-scheme:dark] " +
-  "bg-white/5 border border-white/10 focus:border-violet-500/50 focus:bg-white/8";

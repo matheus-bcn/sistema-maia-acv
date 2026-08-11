@@ -3,7 +3,7 @@ import { getIndividualBaseGoal } from "@/lib/data/goals";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function generateInsights(
-  supabase: SupabaseClient, rankings: SellerRanking[], totalFaturado: number, metaGlobal: number, startDate?: string, endDate?: string
+  supabase: SupabaseClient, rankings: SellerRanking[], totalFaturado: number, metaGlobal: number
 ): Promise<InsightItem[]> {
   const baseMeta = await getIndividualBaseGoal(supabase);
   const insights: InsightItem[] = [];
