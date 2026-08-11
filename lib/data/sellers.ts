@@ -32,11 +32,6 @@ export async function updateSellerStatus(supabase: SupabaseClient, id: string, s
   return { error: error?.message ?? null };
 }
 
-export async function createSeller(supabase: SupabaseClient, input: Omit<Seller, "id" | "created_at">): Promise<{ seller: Seller | null; error: string | null }> {
-  const { data, error } = await supabase.from("sellers").insert(input).select().single();
-  return { seller: (data as Seller) ?? null, error: error?.message ?? null };
-}
-
 export async function getSellerDiagnostics(supabase: SupabaseClient, startDate?: string, endDate?: string) {
   const [rankings, baseMeta] = await Promise.all([
     getSellerRankings(supabase, startDate, endDate),

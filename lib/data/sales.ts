@@ -1,5 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ChartPoint, Sale, SaleStatus } from "@/types";
+import type { Sale, SaleStatus } from "@/types";
+
+function currentMonthRange(): { start: string; end: string } {
+  const date = new Date();
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const lastDay = new Date(y, date.getMonth() + 1, 0).getDate();
+  return { start: `${y}-${m}-01`, end: `${y}-${m}-${String(lastDay).padStart(2, "0")}` };
+}
 
 export async function listSales(
   supabase: SupabaseClient,
@@ -18,22 +26,12 @@ export async function listSales(
   return data as Sale[];
 }
 
-export async function getApprovedSalesTotals(supabase: SupabaseClient): Promise<{ total: number; count: number }> {
-  const { data, error } = await supabase.from("sales").select("amount").in("status", ["Aprovado", "Concluída"]);
-  if (error || !data) return { total: 0, count: 0 };
-  return { total: data.reduce((acc, row) => acc + Number(row.amount), 0), count: data.length };
-}
-
 export async function getApprovedSalesTotalsForMonth(
   supabase: SupabaseClient, startDate?: string, endDate?: string
 ): Promise<{ total: number; count: number }> {
-  const date = new Date();
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const lastDay = new Date(y, date.getMonth() + 1, 0).getDate();
-  
-  const start = startDate || `${y}-${m}-01`;
-  const end = endDate || `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+  const defaults = currentMonthRange();
+  const start = startDate || defaults.start;
+  const end = endDate || defaults.end;
 
   const { data, error } = await supabase
     .from("sales")
@@ -49,13 +47,9 @@ export async function getApprovedSalesTotalsForMonth(
 export async function getSalesBySeller(
   supabase: SupabaseClient, startDate?: string, endDate?: string
 ): Promise<Map<string, { total: number; count: number }>> {
-  const date = new Date();
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const lastDay = new Date(y, date.getMonth() + 1, 0).getDate();
-  
-  const start = startDate || `${y}-${m}-01`;
-  const end = endDate || `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+  const defaults = currentMonthRange();
+  const start = startDate || defaults.start;
+  const end = endDate || defaults.end;
 
   const { data, error } = await supabase
     .from("sales")
@@ -75,59 +69,6 @@ export async function getSalesBySeller(
     map.set(key, cur);
   }
   return map;
-}
-
-export async function getMonthlyChartData(
-  supabase: SupabaseClient, startDate?: string, endDate?: string
-): Promise<ChartPoint[]> {
-  const now = new Date();
-  const start = startDate ? new Date(`${startDate}T00:00:00`) : new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = endDate ? new Date(`${endDate}T23:59:59`) : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-  const diffTime = end.getTime() - start.getTime();
-  const totalDays = Math.min(Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1, 31); 
-  
-  const prevStart = new Date(start.getTime() - diffTime);
-  const prevEnd = new Date(end.getTime() - diffTime);
-
-  const formatDB = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-
-  const [curRes, prevRes] = await Promise.all([
-    supabase.from("sales").select("amount, sale_date").in("status", ["Aprovado", "Concluída"]).gte("sale_date", formatDB(start)).lte("sale_date", formatDB(end)),
-    supabase.from("sales").select("amount, sale_date").in("status", ["Aprovado", "Concluída"]).gte("sale_date", formatDB(prevStart)).lte("sale_date", formatDB(prevEnd)),
-  ]);
-
-  const buckets = (rows: { amount: number; sale_date: string }[] | null, baseDate: Date) => {
-    const acc = new Array(totalDays).fill(0);
-    for (const row of rows ?? []) {
-      const rowDate = new Date(`${row.sale_date}T12:00:00`);
-      const baseMid = new Date(baseDate);
-      baseMid.setHours(12, 0, 0, 0);
-      
-      const dayOffset = Math.floor((rowDate.getTime() - baseMid.getTime()) / (1000 * 60 * 60 * 24));
-      if (dayOffset >= 0 && dayOffset < totalDays) acc[dayOffset] += Number(row.amount);
-    }
-    let running = 0;
-    return acc.map((v) => { running += v; return running; });
-  };
-
-  const atual = buckets(curRes.data as any, start);
-  const anterior = buckets(prevRes.data as any, prevStart);
-
-  const result: ChartPoint[] = [];
-  for(let i = 0; i < totalDays; i++) {
-    const labelDate = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
-    result.push({
-      dia: `${String(labelDate.getDate()).padStart(2, "0")}/${String(labelDate.getMonth() + 1).padStart(2, "0")}`,
-      atual: atual[i] ?? 0,
-      anterior: anterior[i] ?? 0,
-    });
-  }
-
-  if (totalDays > 15) {
-    return result.filter((_, idx) => idx % Math.ceil(totalDays / 7) === 0 || idx === totalDays - 1);
-  }
-  return result;
 }
 
 // Dados diários para comparativo mês atual vs mês anterior

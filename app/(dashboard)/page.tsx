@@ -7,6 +7,7 @@ import { getDashboardStats, buildMaiaBriefing } from "@/lib/data/dashboard";
 import { getDailyComparisonData } from "@/lib/data/sales";
 import { getSellerRankings } from "@/lib/data/sellers";
 import { obterBriefingIAAction } from "@/lib/actions/ai-actions";
+import { isMasterAdminEmail } from "@/lib/auth";
 import { ImportadorIA } from "@/components/ImportadorIA";
 import { NovaVendaModal } from "@/components/NovaVendaModal";
 import { dispararGritoDeGol } from "@/lib/utils";
@@ -233,8 +234,7 @@ export default function Home() {
       } = await supabase.auth.getUser();
 
       if (user?.email) {
-        const masterAdminEmail = process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL || "admin@onlinegrafica.com";
-        const isMasterAdmin = user.email === masterAdminEmail;
+        const isMasterAdmin = isMasterAdminEmail(user.email);
 
         const { data: seller } = await supabase
           .from("sellers")

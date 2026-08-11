@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createSeller, updateSellerStatus, updateSeller } from "@/lib/data/sellers";
+import { updateSellerStatus, updateSeller } from "@/lib/data/sellers";
 import { isSellerAdmin } from "@/lib/auth";
 import type { SellerStatus } from "@/types";
 
@@ -22,32 +22,6 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
   }
 
   return { userId: user.id };
-}
-
-export async function createSellerAction(form: SellerForm) {
-  const supabase = await createClient();
-
-  const auth = await requireAdmin(supabase);
-  if ("error" in auth) return { error: auth.error };
-
-  if (!form.name.trim()) return { error: "O nome do vendedor é obrigatório." };
-
-  const { seller, error } = await createSeller(supabase, {
-    name: form.name,
-    email: form.email,
-    role: form.category, // Correção: Mapeia a "categoria" do modal para a coluna "role" do DB
-    password: form.password,
-    status: "Ativo"
-  } as any);
-
-  if (error) {
-    console.error("Erro ao criar vendedor:", error);
-    return { error };
-  }
-
-  revalidatePath("/equipe");
-  revalidatePath("/dashboard", "layout");
-  return { seller, error: null };
 }
 
 export async function updateSellerAction(id: string, form: SellerForm) {
