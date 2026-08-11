@@ -1,7 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { isAuthRequired } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
+  if (!isAuthRequired()) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

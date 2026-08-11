@@ -12,11 +12,21 @@ interface SellerForm {
   category: string;
 }
 
+async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
+
+  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!sellerData?.is_admin) return { error: "Acesso negado: apenas administradores podem gerenciar vendedores." };
+
+  return { userId: user.id };
+}
+
 export async function createSellerAction(form: SellerForm) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
+  const auth = await requireAdmin(supabase);
+  if ("error" in auth) return { error: auth.error };
 
   if (!form.name.trim()) return { error: "O nome do vendedor é obrigatório." };
 
@@ -41,8 +51,8 @@ export async function createSellerAction(form: SellerForm) {
 export async function updateSellerAction(id: string, form: SellerForm) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Acesso negado: Usuário não autenticado." };
+  const auth = await requireAdmin(supabase);
+  if ("error" in auth) return { error: auth.error };
 
   const { data, error } = await updateSeller(supabase, id, {
     name: form.name,
@@ -64,8 +74,8 @@ export async function updateSellerAction(id: string, form: SellerForm) {
 export async function updateSellerStatusAction(id: string, status: SellerStatus) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Acesso negado: Usuário não autenticado.");
+  const auth = await requireAdmin(supabase);
+  if ("error" in auth) throw new Error(auth.error);
 
   const { error } = await updateSellerStatus(supabase, id, status);
 

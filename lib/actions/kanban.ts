@@ -162,6 +162,13 @@ export async function reordenarListasAction(listIds: string[]) {
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
+  if (listIds.length === 0) return { success: true };
+
+  const { data: lists } = await supabase.from("kanban_lists").select("id, seller_id").in("id", listIds);
+  if (!lists || lists.length !== listIds.length) return { error: "Lista não encontrada." };
+  for (const list of lists) {
+    if (!await canModifyBoardResource(supabase, userId, list.seller_id)) return { error: "Acesso negado." };
+  }
 
   await Promise.all(listIds.map((id, position) =>
     supabase.from("kanban_lists").update({ position }).eq("id", id)
@@ -283,6 +290,14 @@ export async function moverCartaoAction(cardId: string, newListId: string) {
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
 
+  const { data: card } = await supabase.from("kanban_cards").select("seller_id").eq("id", cardId).maybeSingle();
+  if (!card) return { error: "Cartão não encontrado." };
+  if (!await canModifyBoardResource(supabase, userId, card.seller_id)) return { error: "Acesso negado." };
+
+  const { data: destList } = await supabase.from("kanban_lists").select("seller_id").eq("id", newListId).maybeSingle();
+  if (!destList) return { error: "Lista de destino não encontrada." };
+  if (destList.seller_id !== card.seller_id) return { error: "Acesso negado." };
+
   const { data: existing } = await supabase
     .from("kanban_cards").select("position").eq("list_id", newListId)
     .order("position", { ascending: false }).limit(1).maybeSingle();
@@ -315,6 +330,18 @@ export async function reordenarCartoesAction(cardIds: string[], listId: string) 
   const supabase = await createClient();
   const { userId } = await resolveActingId(supabase);
   if (!userId) return { error: "Não autenticado." };
+
+  const { data: destList } = await supabase.from("kanban_lists").select("seller_id").eq("id", listId).maybeSingle();
+  if (!destList) return { error: "Lista não encontrada." };
+  if (!await canModifyBoardResource(supabase, userId, destList.seller_id)) return { error: "Acesso negado." };
+
+  if (cardIds.length > 0) {
+    const { data: cards } = await supabase.from("kanban_cards").select("id, seller_id").in("id", cardIds);
+    if (!cards || cards.length !== cardIds.length) return { error: "Cartão não encontrado." };
+    for (const card of cards) {
+      if (card.seller_id !== destList.seller_id) return { error: "Acesso negado." };
+    }
+  }
 
   await Promise.all(cardIds.map((id, position) =>
     supabase.from("kanban_cards").update({ position, list_id: listId }).eq("id", id)

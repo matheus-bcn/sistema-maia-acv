@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     // 1. Validação de Segurança (Secret Token)
     // Isso garante que apenas o SEU Supabase pode chamar essa URL
     const authHeader = request.headers.get('Authorization');
-    if (authHeader !== `Bearer ${process.env.WEBHOOK_SECRET}`) {
+    if (!process.env.WEBHOOK_SECRET || authHeader !== `Bearer ${process.env.WEBHOOK_SECRET}`) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
