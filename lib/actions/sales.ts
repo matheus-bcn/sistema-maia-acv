@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSale, importSalesFromRows } from "@/lib/data/sales";
 import { getSellerGoal } from "@/lib/data/goals";
 import { createNotification } from "@/lib/data/notifications";
+import { isSellerAdmin } from "@/lib/auth";
 
 export async function createSaleAction(input: {
   seller_id: string;
@@ -38,8 +39,7 @@ export async function deleteSaleAction(id: string) {
   const { data: sale } = await supabase.from("sales").select("seller_id").eq("id", id).maybeSingle();
   if (!sale) return { error: "Venda não encontrada." };
 
-  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
-  const isAdmin = sellerData?.is_admin ?? false;
+  const isAdmin = await isSellerAdmin(supabase, user.id, user.email);
 
   if (sale.seller_id !== user.id && !isAdmin) {
     return { error: "Acesso negado: você não pode excluir vendas de outro vendedor." };
@@ -61,8 +61,7 @@ export async function deleteAllSalesAction(startDate: string, endDate: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
-  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
-  if (!sellerData?.is_admin) {
+  if (!(await isSellerAdmin(supabase, user.id, user.email))) {
     return { error: "Acesso negado: apenas administradores podem excluir vendas em massa." };
   }
 
