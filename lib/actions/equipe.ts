@@ -3,17 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { isSellerAdmin } from "@/lib/auth";
 
 async function requireAdmin(): Promise<{ userId: string } | { error: string }> {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: usuário não autenticado." };
 
-  const masterEmail = process.env.MASTER_ADMIN_EMAIL?.toLowerCase();
-  if (masterEmail && user.email?.toLowerCase() === masterEmail) return { userId: user.id };
-
-  const { data } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
-  if (!data?.is_admin) return { error: "Acesso negado: apenas administradores." };
+  if (!(await isSellerAdmin(supabase, user.id, user.email))) {
+    return { error: "Acesso negado: apenas administradores." };
+  }
 
   return { userId: user.id };
 }

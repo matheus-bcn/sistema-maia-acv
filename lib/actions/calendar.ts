@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isSellerAdmin } from "@/lib/auth";
 
 export async function createCalendarEventAction(input: {
   title: string;
@@ -39,8 +40,7 @@ export async function deleteCalendarEventAction(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
-  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
-  if (!sellerData?.is_admin) {
+  if (!(await isSellerAdmin(supabase, user.id, user.email))) {
     return { error: "Acesso negado: apenas administradores podem excluir eventos do calendário." };
   }
 

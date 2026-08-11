@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createSeller, updateSellerStatus, updateSeller } from "@/lib/data/sellers";
+import { isSellerAdmin } from "@/lib/auth";
 import type { SellerStatus } from "@/types";
 
 interface SellerForm {
@@ -16,8 +17,9 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Acesso negado: Usuário não autenticado." };
 
-  const { data: sellerData } = await supabase.from("sellers").select("is_admin").eq("id", user.id).maybeSingle();
-  if (!sellerData?.is_admin) return { error: "Acesso negado: apenas administradores podem gerenciar vendedores." };
+  if (!(await isSellerAdmin(supabase, user.id, user.email))) {
+    return { error: "Acesso negado: apenas administradores podem gerenciar vendedores." };
+  }
 
   return { userId: user.id };
 }

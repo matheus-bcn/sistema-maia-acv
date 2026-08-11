@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { isSellerAdmin } from "@/lib/auth";
 
 async function resolveActingId(supabase: Awaited<ReturnType<typeof createClient>>, targetSellerId?: string) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -12,14 +13,7 @@ async function resolveActingId(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 async function checkIsAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, email?: string | null) {
-  // Prefer server-only env var; fall back to NEXT_PUBLIC for backwards compatibility
-  const masterEmail = (
-    process.env.MASTER_ADMIN_EMAIL ||
-    process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL
-  )?.toLowerCase();
-  if (masterEmail && email && email.toLowerCase() === masterEmail) return true;
-  const { data } = await supabase.from("sellers").select("is_admin").eq("id", userId).maybeSingle();
-  return !!(data?.is_admin);
+  return isSellerAdmin(supabase, userId, email);
 }
 
 // Returns true if userId owns the resource OR if the resource belongs to an admin board (team board)
