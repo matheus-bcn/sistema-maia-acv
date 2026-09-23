@@ -88,6 +88,11 @@ export async function deletarVendedorAction(id: string) {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
+    // Nunca apagar o próprio login nem o de outro administrador (evita perder o acesso ao sistema).
+    if (id === auth.userId) throw new Error("Você não pode excluir o seu próprio acesso.");
+    const { data: alvo } = await supabaseAdmin.from('sellers').select('is_admin').eq('id', id).maybeSingle();
+    if (alvo?.is_admin) throw new Error("Administradores não podem ser excluídos por aqui.");
+
     const { error: dbError } = await supabaseAdmin.from('sellers').update({
       status: 'Inativo',
     }).eq('id', id);
