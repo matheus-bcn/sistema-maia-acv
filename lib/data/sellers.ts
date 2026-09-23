@@ -4,7 +4,7 @@ import { getSalesBySeller } from "@/lib/data/sales";
 import { getIndividualBaseGoal } from "@/lib/data/goals";
 
 export async function listSellers(supabase: SupabaseClient, status?: SellerStatus | "Todos"): Promise<Seller[]> {
-  let query = supabase.from("sellers").select("*").order("name");
+  let query = supabase.from("sellers").select("*").or("is_admin.is.null,is_admin.eq.false").order("name");
   if (status && status !== "Todos") query = query.eq("status", status);
 
   const { data, error } = await query;
