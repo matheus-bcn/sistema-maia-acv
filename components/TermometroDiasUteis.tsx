@@ -79,7 +79,7 @@ export function TermometroDiasUteis({ meta, faturado, inicio, fim }: TermometroD
     activeZone = 2;
   } else if (pacing < 120) {
     status = "BEM";
-    colorClass = "text-purple-400";
+    colorClass = "text-emerald-400";
     neonGlow = "drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]";
     activeZone = 3;
   } else {
